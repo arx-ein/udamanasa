@@ -19,6 +19,7 @@ pub mod channel;
 pub mod clear;
 pub mod deletevar;
 pub mod dice;
+pub mod echo;
 pub mod endauto;
 pub mod fetch;
 pub mod gemini;
@@ -155,6 +156,7 @@ pub fn slash_commands(disabled_commands: &[&str]) -> Vec<ManamiSlashCommand> {
     [
         help::SLASH_HELP_COMMAND,
         ping::SLASH_PING_COMMAND,
+        echo::SLASH_ECHO_COMMAND,
         auto::SLASH_AUTO_COMMAND,
         endauto::SLASH_ENDAUTO_COMMAND,
         bf::SLASH_BF_COMMAND,
