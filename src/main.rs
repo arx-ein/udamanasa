@@ -3,7 +3,7 @@ use std::{env, str::FromStr};
 use anyhow::Context as _;
 
 use serenity::{
-    model::id::{ChannelId, GuildId, RoleId},
+    model::id::{ChannelId, GuildId},
     prelude::*,
 };
 
@@ -57,14 +57,6 @@ async fn main() -> anyhow::Result<()> {
         .map(|id| GuildId::from_str(&id).unwrap())
         .unwrap();
 
-    let jail_mark_role_id = env_var("JAIL_MARK_ROLE_ID")
-        .map(|id| RoleId::from_str(&id).unwrap())
-        .unwrap_or_default();
-
-    let jail_main_role_id = env_var("JAIL_MAIN_ROLE_ID")
-        .map(|id| RoleId::from_str(&id).unwrap())
-        .unwrap_or_default();
-
     let commit_hash = env_var("COMMIT_HASH");
 
     let commit_date = env_var("COMMIT_DATE");
@@ -78,8 +70,6 @@ async fn main() -> anyhow::Result<()> {
         channel_ids,
         debug_channel_id,
         guild_id,
-        jail_mark_role_id,
-        jail_main_role_id,
         gemini,
         commit_hash,
         commit_date,

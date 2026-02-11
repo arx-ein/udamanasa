@@ -25,10 +25,8 @@ pub mod gemini;
 pub mod help;
 pub mod imakita;
 pub mod isprime;
-pub mod jail;
 pub mod listvar;
 pub mod ping;
-pub mod unjail;
 pub mod var;
 pub mod varbulk;
 
@@ -180,9 +178,7 @@ pub fn prefix_commands(disabled_commands: &[&str]) -> Vec<ManamiPrefixCommand> {
         clear::PREFIX_CLEAR_COMMAND,
         channel::PREFIX_CHANNEL_COMMAND,
         deletevar::PREFIX_DELETEVAR_COMMAND,
-        jail::PREFIX_JAIL_COMMAND,
         listvar::PREFIX_LISTVAR_COMMAND,
-        unjail::PREFIX_UNJAIL_COMMAND,
         cclemon::PREFIX_CCLEMON_COMMAND,
         calc::PREFIX_CALC_COMMAND,
         calcsay::PREFIX_CALCSAY_COMMAND,
