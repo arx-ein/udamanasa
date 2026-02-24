@@ -21,15 +21,20 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      - name: Link to Railway project
+        run: railway link -p ${{ secrets.RAILWAY_PROJECT_ID }} -e production -s ${{ secrets.RAILWAY_SERVICE_ID }}
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+
       - name: Set variables
         run: |
           railway variables set \
             COMMIT_HASH='${{ env.COMMIT_HASH }}' \
             COMMIT_DATE='${{ env.COMMIT_DATE }}'
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
 
       - name: Deploy
         run: railway up --detach
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
