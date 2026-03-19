@@ -3,3 +3,4 @@
 Secrets*.toml
 Cargo.lock
 db.sqlite
+.env
