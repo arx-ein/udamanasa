@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let debug_channel_id = env_var("DEBUG_ROOM_ID")
-        .map(|id| ChannelId::from_str(&id).unwrap())
+        .map(|id| ChannelId::from_str(id.trim()).unwrap())
         .unwrap_or_default();
 
     let disabled_commands = env_var("DISABLED_COMMANDS")
@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
 
     let guild_id = env_var("DISCORD_GUILD_ID")
-        .map(|id| GuildId::from_str(&id).unwrap())
+        .map(|id| GuildId::from_str(id.trim()).unwrap())
         .unwrap();
 
     let commit_hash = env_var("COMMIT_HASH");
