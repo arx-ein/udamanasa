@@ -12,7 +12,7 @@ use super::ManamiPrefixCommand;
 pub const PREFIX_VAR_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "var",
     alias: &[],
-    usage: "!var <name>=<expr>",
+    usage: "u!var <name>=<expr>",
     description: "calcで使える変数を定義するよ！",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,

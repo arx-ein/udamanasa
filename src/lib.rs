@@ -326,7 +326,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
 
     // if message does not contains any command, ignore
     let command_pattern =
-        Regex::new(r"(?ms)((?:まなみ(?:ちゃん)?(?:\s|、|は|って|の)?)|!)(.*)").unwrap();
+        Regex::new(r"(?ms)((?:まなみ(?:ちゃん)?(?:\s|、|は|って|の)?)|^u!)(.*)").unwrap();
     let (_prefix, input_string): (String, String) = match command_pattern.captures(&msg.content) {
         Some(caps) => (
             caps.get(1).unwrap().as_str().to_owned(),

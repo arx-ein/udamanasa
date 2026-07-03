@@ -6,7 +6,7 @@ use super::{ManamiPrefixCommand, ManamiSlashCommand};
 pub const PREFIX_HELP_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "help",
     alias: &["たすけて", "助けて"],
-    usage: "!help",
+    usage: "u!help",
     description: "まなみの自己紹介だよ！",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,
@@ -26,7 +26,7 @@ pub const SLASH_HELP_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 };
 
 const ABOUT_ME: &str = "# まなみの自己紹介だよ！\n";
-const ABOUT_GHOSTWRITE: &str = "## 代筆機能があるよ！\nまなみは代筆ができるよ！　DMに送ってもらったメッセージを`!channel`で指定されたチャンネルに転送するよ！\n";
+const ABOUT_GHOSTWRITE: &str = "## 代筆機能があるよ！\nまなみは代筆ができるよ！　DMに送ってもらったメッセージを`u!channel`で指定されたチャンネルに転送するよ！\n";
 const ABOUT_AI: &str = "## おはなしもできるよ！\nまなみの部屋でいっぱい話しかけてね！\n";
 
 fn generate_help_rows(usages: &[(&str, &str)], usage_space_minimum: usize) -> String {

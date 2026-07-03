@@ -56,7 +56,7 @@ use serenity::utils::MessageBuilder;
 pub const PREFIX_CHANNEL_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "channel",
     alias: &[],
-    usage: "!channel",
+    usage: "u!channel",
     description: "代筆先のチャンネルを指定するよ！",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,

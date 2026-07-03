@@ -5,7 +5,7 @@ use crate::commands::ManamiPrefixCommand;
 pub const PREFIX_CALCSAY_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "calcsay",
     alias: &[],
-    usage: "!calcsay <expr>",
+    usage: "u!calcsay <expr>",
     description: "calcの結果を代筆先に送信するよ！",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,

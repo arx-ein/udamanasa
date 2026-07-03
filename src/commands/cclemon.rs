@@ -6,7 +6,7 @@ use crate::commands::ManamiPrefixCommand;
 pub const PREFIX_CCLEMON_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "cclemon",
     alias: &[],
-    usage: "!cclemon <opponent>",
+    usage: "u!cclemon <opponent>",
     description: "CCレモンをするよ！",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: false,

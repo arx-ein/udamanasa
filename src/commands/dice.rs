@@ -16,7 +16,7 @@ use crate::commands::{ManamiPrefixCommand, ManamiSlashCommand};
 pub const PREFIX_DICE_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "dice",
     alias: &[],
-    usage: "![n]d<m>",
+    usage: "u![n]d<m>",
     description: "m面ダイスをn回振るよ！",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,

@@ -8,7 +8,7 @@ use super::{CommandContext, ManamiSlashCommand};
 pub const PREFIX_FETCH_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "fetch",
     alias: &[],
-    usage: "!fetch [count]",
+    usage: "u!fetch [count]",
     description: "このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ！",
     run: |ctx| Box::pin(run_prefix(ctx)),
     is_dm_command: false,

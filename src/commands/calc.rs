@@ -5,7 +5,7 @@ use crate::commands::ManamiPrefixCommand;
 pub const PREFIX_CALC_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "calc",
     alias: &[],
-    usage: "!calc <expr>",
+    usage: "u!calc <expr>",
     description: "数式を計算するよ！",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,

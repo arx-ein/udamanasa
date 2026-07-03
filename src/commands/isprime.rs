@@ -9,7 +9,7 @@ use serenity::model::application::ResolvedValue;
 pub const PREFIX_ISPRIME_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "isprime",
     alias: &[],
-    usage: "!isprime <n>",
+    usage: "u!isprime <n>",
     description: "nが素数かどうかを判定するよ！",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,
