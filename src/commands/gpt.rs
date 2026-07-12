@@ -3,14 +3,14 @@ use serenity::{
     model::application::{CommandOptionType, ResolvedValue},
 };
 
-use crate::ai::GeminiModel;
+use crate::ai::GptModel;
 
 use crate::{commands::ManamiSlashCommand, Bot};
 use serenity::model::application::ResolvedOption;
-pub const SLASH_GEMINI_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
-    name: "gemini",
-    usage: "/gemini <model>",
-    description: "Geminiの設定を変更するよ！",
+pub const SLASH_GPT_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
+    name: "gpt",
+    usage: "/gpt <model>",
+    description: "GPTの設定を変更するよ！",
     register,
     run: |option, ctx| {
         let opts = parse(option, ctx.bot);
@@ -20,14 +20,14 @@ pub const SLASH_GEMINI_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 };
 
 pub fn register() -> CreateCommand {
-    CreateCommand::new("gemini")
-        .description("Geminiの設定を変更するよ")
+    CreateCommand::new("gpt")
+        .description("GPTの設定を変更するよ")
         .add_option(
             CreateCommandOption::new(CommandOptionType::String, "model", "モデル")
                 .required(false)
-                .add_string_choice("Gemini 2.5 Flash Lite", "gemini-2.5-flash-lite")
-                .add_string_choice("Gemini 2.5 Flash", "gemini-2.5-flash")
-                .add_string_choice("Gemini 2.5 Pro", "gemini-2.5-pro"),
+                .add_string_choice("GPT-5", "gpt-5")
+                .add_string_choice("GPT-5 mini", "gpt-5-mini")
+                .add_string_choice("GPT-5 nano", "gpt-5-nano"),
         )
 }
 
@@ -35,23 +35,23 @@ pub async fn run(option: Vec<ResolvedOption<'_>>, bot: &Bot) -> String {
     run_body(parse(option, bot), bot).await
 }
 
-fn parse(option: Vec<ResolvedOption<'_>>, _: &Bot) -> Option<GeminiModel> {
+fn parse(option: Vec<ResolvedOption<'_>>, _: &Bot) -> Option<GptModel> {
     option
         .iter()
         .fold(None, |model, option| match (option.name, &option.value) {
-            ("model", ResolvedValue::String(s)) => Some(GeminiModel::from(*s)),
+            ("model", ResolvedValue::String(s)) => Some(GptModel::from(*s)),
             _ => model,
         })
 }
 
-async fn run_body(model: Option<GeminiModel>, bot: &Bot) -> String {
+async fn run_body(model: Option<GptModel>, bot: &Bot) -> String {
     model.map_or_else(|| {
-        let current_model = bot.gemini.get_model();
+        let current_model = bot.gpt.get_model();
         let msg = format!("モデルを{current_model}に変更したよ");
         msg
     }, |model| {
         let msg = format!("モデルを{model}に変更したよ");
-        bot.gemini.set_model(model);
+        bot.gpt.set_model(model);
         msg
     })
 }

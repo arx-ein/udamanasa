@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
     let commit_date = env_var("COMMIT_DATE");
 
-    let gemini = ai::GeminiAI::manami(&env_var_required("GEMINI_API_KEY")?);
+    let gpt = ai::GptAI::manami(&env_var_required("OPENAI_API_KEY")?);
 
     let database_path = env_var("DATABASE_PATH").unwrap_or_else(|| "./db.sqlite".to_owned());
     let database = BotDatabase::new(&database_path).await?;
@@ -70,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
         channel_ids,
         debug_channel_id,
         guild_id,
-        gemini,
+        gpt,
         commit_hash,
         commit_date,
         &disabled_commands,

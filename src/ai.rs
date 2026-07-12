@@ -92,189 +92,100 @@ const MATOME_PROMPT: &str = r"
 ```
 ";
 
-#[derive(Clone)]
-pub enum GeminiModel {
-    Gemini25Flash,
-    Gemini25FlashLite,
-    Gemini25Pro,
+/// 会話ログ上での発言者の役割
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Role {
+    User,
+    Model,
 }
 
-impl std::fmt::Display for GeminiModel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Gemini25Flash => write!(f, "gemini-2.5-flash"),
-            Self::Gemini25FlashLite => write!(f, "gemini-2.5-flash-lite"),
-            Self::Gemini25Pro => write!(f, "gemini-2.5-pro"),
-        }
-    }
+/// プロバイダに依存しない会話ログ1件分
+#[derive(Clone, Debug)]
+pub struct ChatMessage {
+    pub role: Role,
+    pub text: String,
 }
 
-impl From<&str> for GeminiModel {
-    fn from(model: &str) -> Self {
-        match model {
-            "gemini-2.5-flash" => Self::Gemini25Flash,
-            "gemini-2.5-flash-lite" => Self::Gemini25FlashLite,
-            "gemini-2.5-pro" => Self::Gemini25Pro,
-            _ => Self::Gemini25FlashLite,
-        }
-    }
-}
-
-impl Default for GeminiModel {
-    fn default() -> Self {
-        Self::Gemini25FlashLite
-    }
-}
-
-pub struct GeminiAI {
-    model: Mutex<GeminiModel>,
-    api_key: String,
-    conversation: GeminiConversation,
-}
-
-#[derive(Serialize, Debug)]
-struct GeminiConversation {
-    system_instruction: GeminiContent,
-    contents: Mutex<VecDeque<GeminiContent>>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct GeminiContent {
-    role: Option<String>,
-    parts: Vec<Part>,
-}
-
-impl GeminiContent {
+impl ChatMessage {
     pub fn user(user_name: &str, message: &str) -> Self {
         Self {
-            role: Some("user".to_owned()),
-            parts: vec![Part {
-                text: format!("{user_name}: {message}"),
-            }],
+            role: Role::User,
+            text: format!("{user_name}: {message}"),
         }
     }
 
     pub fn model(message: &str) -> Self {
         Self {
-            role: Some("model".to_owned()),
-            parts: vec![Part {
-                text: message.to_owned(),
-            }],
+            role: Role::Model,
+            text: message.to_owned(),
         }
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Part {
-    text: String,
+/// AIプロバイダごとのリクエスト/レスポンス形式の差異を吸収するトレイト。
+/// 新しいプロバイダを追加する場合は、このトレイトを実装した型を用意すればよい。
+pub trait ChatBackend {
+    type Model: Clone + Default + std::fmt::Display + for<'a> From<&'a str> + Send + Sync;
+
+    fn endpoint(model: &Self::Model) -> String;
+    fn headers(api_key: &str) -> Vec<(&'static str, String)>;
+    fn build_body(model: &Self::Model, system_instruction: &str, contents: &VecDeque<ChatMessage>) -> String;
+    fn parse_response(body: &str) -> Result<String>;
 }
 
-#[derive(Deserialize)]
-struct GeminiResponse {
-    candidates: Vec<Candidate>,
-    // その他のフィールドは不要なため省略
+pub struct ChatAI<B: ChatBackend> {
+    model: Mutex<B::Model>,
+    api_key: String,
+    system_instruction: String,
+    contents: Mutex<VecDeque<ChatMessage>>,
 }
 
-#[derive(Deserialize)]
-struct Candidate {
-    content: GeminiContent,
-}
-
-impl GeminiConversation {
-    fn new() -> Self {
-        Self {
-            system_instruction: GeminiContent {
-                role: None,
-                parts: vec![Part {
-                    text: MANAMI_PROMPT.to_owned(),
-                }],
-            },
-            contents: Mutex::new(VecDeque::new()),
-        }
-    }
-}
-
-impl Default for GeminiConversation {
-    fn default() -> Self {
-        Self {
-            system_instruction: GeminiContent {
-                role: None,
-                parts: vec![],
-            },
-            contents: Mutex::new(VecDeque::new()),
-        }
-    }
-}
-impl std::fmt::Display for GeminiConversation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let result = serde_json::to_string(self).map_err(|_| std::fmt::Error)?;
-        write!(f, "{result}")
-    }
-}
-
-impl GeminiAI {
+impl<B: ChatBackend> ChatAI<B> {
     pub fn new(api_key: &str) -> Self {
         Self {
-            model: Mutex::new(GeminiModel::Gemini25FlashLite),
+            model: Mutex::new(B::Model::default()),
             api_key: api_key.to_owned(),
-            conversation: GeminiConversation::default(),
+            system_instruction: String::new(),
+            contents: Mutex::new(VecDeque::new()),
         }
     }
+
     pub fn manami(api_key: &str) -> Self {
         Self {
-            model: Mutex::new(GeminiModel::Gemini25FlashLite),
+            model: Mutex::new(B::Model::default()),
             api_key: api_key.to_owned(),
-            conversation: GeminiConversation::new(),
+            system_instruction: MANAMI_PROMPT.to_owned(),
+            contents: Mutex::new(VecDeque::new()),
         }
     }
+
     pub fn set_system_instruction(&mut self, instruction: &str) {
-        let content = GeminiContent {
-            role: None,
-            parts: vec![Part {
-                text: instruction.to_owned(),
-            }],
-        };
-        self.conversation.system_instruction = content;
+        self.system_instruction = instruction.to_owned();
     }
+
     pub fn add_user_log(&self, user: &str, message: &str) {
-        let content = GeminiContent {
-            role: Some("user".to_owned()),
-            parts: vec![Part {
-                text: format!("{user}: {message}"),
-            }],
-        };
-        let mut contents = self.conversation.contents.lock().unwrap();
-        contents.push_back(content);
+        let mut contents = self.contents.lock().unwrap();
+        contents.push_back(ChatMessage::user(user, message));
         if contents.len() > 500 {
             contents.pop_front();
         }
     }
+
     pub fn add_model_log(&self, message: &str) {
-        let content = GeminiContent {
-            role: Some("model".to_owned()),
-            parts: vec![Part {
-                text: message.to_owned(),
-            }],
-        };
-        let mut contents = self.conversation.contents.lock().unwrap();
-        contents.push_back(content);
+        let mut contents = self.contents.lock().unwrap();
+        contents.push_back(ChatMessage::model(message));
         if contents.len() > 500 {
             contents.pop_front();
         }
     }
 
     pub fn add_log_bulk(&self, messages: Vec<(String, &str)>) {
-        let mut contents = self.conversation.contents.lock().unwrap();
+        let mut contents = self.contents.lock().unwrap();
         for (user, message) in messages {
-            let role = if user == "model" { "model" } else { "user" };
-            let text = if user == "model" {
-                message.to_owned()
+            let content = if user == "model" {
+                ChatMessage::model(message)
             } else {
-                format!("{user}: {message}")
-            };
-            let content = GeminiContent {
-                role: Some(role.to_owned()),
-                parts: vec![Part { text }],
+                ChatMessage::user(&user, message)
             };
             contents.push_back(content);
         }
@@ -285,10 +196,13 @@ impl GeminiAI {
     }
 
     pub fn clear(&self) {
-        self.conversation.contents.lock().unwrap().clear();
+        self.contents.lock().unwrap().clear();
     }
+
     pub fn debug(&self) -> String {
-        self.conversation.to_string()
+        let model = self.model.lock().unwrap().clone();
+        let contents = self.contents.lock().unwrap();
+        B::build_body(&model, &self.system_instruction, &contents)
     }
 
     pub async fn generate(&self) -> Result<String, anyhow::Error> {
@@ -296,8 +210,12 @@ impl GeminiAI {
         self.generate_with_model(model).await
     }
 
-    pub async fn generate_with_model(&self, model: GeminiModel) -> Result<String, anyhow::Error> {
-        let (status, response) = generate(model, &self.api_key, &self.conversation).await?;
+    pub async fn generate_with_model(&self, model: B::Model) -> Result<String, anyhow::Error> {
+        let body = {
+            let contents = self.contents.lock().unwrap();
+            B::build_body(&model, &self.system_instruction, &contents)
+        };
+        let (status, response) = send::<B>(&model, &self.api_key, body).await?;
 
         if status.is_success() {
             self.add_model_log(&response);
@@ -307,22 +225,12 @@ impl GeminiAI {
         }
     }
 
-    pub async fn generate_matome(
-        &self,
-        messages: Vec<GeminiContent>,
-    ) -> Result<String, anyhow::Error> {
-        let conversation = GeminiConversation {
-            system_instruction: GeminiContent {
-                role: None,
-                parts: vec![Part {
-                    text: MATOME_PROMPT.to_owned(),
-                }],
-            },
-            contents: Mutex::new(messages.into()),
-        };
+    pub async fn generate_matome(&self, messages: Vec<ChatMessage>) -> Result<String, anyhow::Error> {
+        let model = B::Model::default();
+        let contents: VecDeque<ChatMessage> = messages.into();
+        let body = B::build_body(&model, MATOME_PROMPT, &contents);
 
-        let model = GeminiModel::Gemini25FlashLite;
-        let (status, response) = generate(model, &self.api_key, &conversation).await?;
+        let (status, response) = send::<B>(&model, &self.api_key, body).await?;
         if status.is_success() {
             Ok(response)
         } else {
@@ -330,60 +238,164 @@ impl GeminiAI {
         }
     }
 
-    pub fn set_model(&self, model: GeminiModel) {
+    pub fn set_model(&self, model: B::Model) {
         *self.model.lock().unwrap() = model;
     }
 
-    pub fn get_model(&self) -> GeminiModel {
+    pub fn get_model(&self) -> B::Model {
         self.model.lock().unwrap().clone()
     }
 }
 
-async fn generate(
-    model: GeminiModel,
-    api_key: &String,
-    conversation: &GeminiConversation,
+async fn send<B: ChatBackend>(
+    model: &B::Model,
+    api_key: &str,
+    body: String,
 ) -> Result<(reqwest::StatusCode, String), anyhow::Error> {
-    let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    );
-    let prompt = conversation.to_string();
-    println!("Prompt: {prompt}");
+    let url = B::endpoint(model);
+    println!("Prompt: {body}");
     let client = reqwest::Client::new();
-    let response = client
-        .post(&url)
-        .header("Content-Type", "application/json")
-        .body(prompt)
-        .send()
-        .await?;
+    let mut request = client.post(&url).header("Content-Type", "application/json");
+    for (key, value) in B::headers(api_key) {
+        request = request.header(key, value);
+    }
+    let response = request.body(body).send().await?;
     let status = response.status();
-    let response = response.text().await?;
-    println!("Response: {response}");
-    let response = serde_json::from_str::<GeminiResponse>(&response)
-        .map_err(|e| anyhow!("Failed to parse response: {}\n {}", e, response))?;
-    let response = response
-        .candidates
-        .first()
-        .ok_or_else(|| anyhow!("No candidates found"))?
-        .content
-        .parts
-        .first()
-        .ok_or_else(|| anyhow!("No content found"))?
-        .text
-        .clone();
+    let response_text = response.text().await?;
+    println!("Response: {response_text}");
+    let text = B::parse_response(&response_text)?;
 
-    Ok((status, response))
+    Ok((status, text))
 }
 
+// ---- GPT backend ----
+
+#[derive(Clone)]
+pub enum GptModel {
+    Gpt5,
+    Gpt5Mini,
+    Gpt5Nano,
+}
+
+impl std::fmt::Display for GptModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Gpt5 => write!(f, "gpt-5"),
+            Self::Gpt5Mini => write!(f, "gpt-5-mini"),
+            Self::Gpt5Nano => write!(f, "gpt-5-nano"),
+        }
+    }
+}
+
+impl From<&str> for GptModel {
+    fn from(model: &str) -> Self {
+        match model {
+            "gpt-5" => Self::Gpt5,
+            "gpt-5-mini" => Self::Gpt5Mini,
+            "gpt-5-nano" => Self::Gpt5Nano,
+            _ => Self::Gpt5Nano,
+        }
+    }
+}
+
+impl Default for GptModel {
+    fn default() -> Self {
+        Self::Gpt5Nano
+    }
+}
+
+#[derive(Serialize)]
+struct OpenAiMessage {
+    role: String,
+    content: String,
+}
+
+#[derive(Serialize)]
+struct OpenAiRequest {
+    model: String,
+    messages: Vec<OpenAiMessage>,
+}
+
+#[derive(Deserialize)]
+struct OpenAiResponse {
+    choices: Vec<OpenAiChoice>,
+    // その他のフィールドは不要なため省略
+}
+
+#[derive(Deserialize)]
+struct OpenAiChoice {
+    message: OpenAiResponseMessage,
+}
+
+#[derive(Deserialize)]
+struct OpenAiResponseMessage {
+    content: String,
+}
+
+pub struct GptBackend;
+
+impl ChatBackend for GptBackend {
+    type Model = GptModel;
+
+    fn endpoint(_model: &GptModel) -> String {
+        "https://api.openai.com/v1/chat/completions".to_owned()
+    }
+
+    fn headers(api_key: &str) -> Vec<(&'static str, String)> {
+        vec![("Authorization", format!("Bearer {api_key}"))]
+    }
+
+    fn build_body(model: &GptModel, system_instruction: &str, contents: &VecDeque<ChatMessage>) -> String {
+        let mut messages = Vec::with_capacity(contents.len() + 1);
+        if !system_instruction.is_empty() {
+            messages.push(OpenAiMessage {
+                role: "system".to_owned(),
+                content: system_instruction.to_owned(),
+            });
+        }
+        for message in contents {
+            let role = match message.role {
+                Role::User => "user",
+                Role::Model => "assistant",
+            };
+            messages.push(OpenAiMessage {
+                role: role.to_owned(),
+                content: message.text.clone(),
+            });
+        }
+
+        let request = OpenAiRequest {
+            model: model.to_string(),
+            messages,
+        };
+        serde_json::to_string(&request).unwrap()
+    }
+
+    fn parse_response(body: &str) -> Result<String> {
+        let response = serde_json::from_str::<OpenAiResponse>(body)
+            .map_err(|e| anyhow!("Failed to parse response: {}\n {}", e, body))?;
+        let text = response
+            .choices
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow!("No choices found"))?
+            .message
+            .content;
+
+        Ok(text)
+    }
+}
+
+pub type GptAI = ChatAI<GptBackend>;
+
 #[cfg(test)]
-mod gemini_tests {
+mod gpt_tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_gemini_generate() {
-        let ai = GeminiAI::new("");
+    async fn test_gpt_generate() {
+        let ai = GptAI::manami("");
         ai.add_user_log("宇田", "まなみ、おはよう！　今日は何をする予定？");
-        println!("{}", &ai.conversation);
         let response = ai.generate().await;
         match response {
             Ok(res) => println!("Response: {res}"),
