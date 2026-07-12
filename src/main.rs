@@ -7,9 +7,9 @@ use serenity::{
     prelude::*,
 };
 
-use udamanami::ai;
-use udamanami::db::BotDatabase;
-use udamanami::Bot;
+use udamanasa::ai;
+use udamanasa::db::BotDatabase;
+use udamanasa::Bot;
 
 fn env_var(key: &str) -> Option<String> {
     env::var(key).ok()
