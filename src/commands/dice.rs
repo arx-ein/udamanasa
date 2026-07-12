@@ -17,7 +17,7 @@ pub const PREFIX_DICE_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "dice",
     alias: &[],
     usage: "u![n]d<m>",
-    description: "m面ダイスをn回振るよ！",
+    description: "m面ダイスをn回振るよ",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,
     is_guild_command: true,
@@ -26,7 +26,7 @@ pub const PREFIX_DICE_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
 pub const SLASH_DICE_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "dice",
     usage: "/dice <operation>",
-    description: "サイコロを振るよ！　ex. 2d6 <= 9",
+    description: "サイコロを振るよ (ex. 2d6 <= 9)",
     register,
     run: |options, _| {
         let result = run(options);
@@ -110,8 +110,8 @@ fn parse_options(options: Vec<ResolvedOption<'_>>) -> Result<Dice, &'_ str> {
         Err(Error {
             code: ErrorKind::MapRes,
             ..
-        }) => Err("数字がおかしいよ"),
-        Err(_) => Err("しらないコマンドだよ"),
+        }) => Err("数字がおかしいかも"),
+        Err(_) => Err("そのコマンドは知らないかも"),
     }
 }
 
@@ -162,13 +162,13 @@ pub async fn run_old(ctx: CommandContext<'_>) {
             ..
         }) => {
             ctx.channel_id
-                .say(ctx.cache_http(), "数字がおかしいよ")
+                .say(ctx.cache_http(), "数字がおかしいかも")
                 .await
                 .unwrap();
         }
         Err(_) => {
             ctx.channel_id
-                .say(ctx.cache_http(), "しらないコマンドだよ")
+                .say(ctx.cache_http(), "そのコマンドは知らないかも")
                 .await
                 .unwrap();
         }
@@ -181,10 +181,10 @@ async fn dice(reply: &ChannelId, http: &Http, parsed: Dice) {
 
     // 入力のチェック
     if num > 1000000 {
-        reply.say(http, "そんないっぱい振れないよ").await.unwrap();
+        reply.say(http, "そんないっぱいは振れないなあ").await.unwrap();
         return;
     } else if num == 0 {
-        reply.say(http, "じゃあ振らないよ").await.unwrap();
+        reply.say(http, "0個のダイスは振れないなあ").await.unwrap();
         return;
     }
 

@@ -7,7 +7,7 @@ pub const PREFIX_LISTVAR_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "listvar",
     alias: &[],
     usage: "u!listvar",
-    description: "定義された変数の一覧を表示するよ！",
+    description: "定義された変数の一覧を表示するよ",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,
     is_guild_command: true,

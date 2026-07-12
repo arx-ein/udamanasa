@@ -7,7 +7,7 @@ pub const PREFIX_CCLEMON_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "cclemon",
     alias: &[],
     usage: "u!cclemon <opponent>",
-    description: "CCレモンをするよ！",
+    description: "CCレモンで遊ぶよ",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: false,
     is_guild_command: true,

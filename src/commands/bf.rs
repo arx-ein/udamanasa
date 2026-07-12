@@ -10,7 +10,7 @@ use crate::commands::ManamiSlashCommand;
 pub const SLASH_BF_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "bf",
     usage: "/bf <code> [input]",
-    description: "まなさはいんたぷりた？　なんだよ！",
+    description: "まなさは、いんたぷりた？なんだよ",
     register,
     run: |options, _| {
         let result = run(options);
@@ -74,7 +74,7 @@ fn parse_options(option: Vec<ResolvedOption<'_>>) -> Result<(Vec<BrainfuckComman
     });
 
     let Some(code) = code else {
-        return Err("エラーだよ！");
+        return Err("エラーだよ");
     };
 
     let code = code.chars().map(BrainfuckCommand::from).collect::<Vec<_>>();
@@ -93,17 +93,17 @@ fn run_body(parsed: Result<(Vec<BrainfuckCommand>, &str), &str>) -> String {
     match output {
         Ok(output) => {
             if output.is_empty() {
-                "出力はなかったよ！".to_owned()
+                "出力はなかったよ".to_owned()
             } else if output.split("\n").count() > 16 {
                 let output = output.split("\n").take(16).collect::<Vec<_>>();
                 format!(
-                    "```\n{}\n...のこり{}行は省略しちゃうね！\n```",
+                    "```\n{}\n...のこり{}行は省略しちゃうね\n```",
                     &output.join("\n"),
                     output.len() - 16
                 )
             } else if output.len() > 1960 {
                 format!(
-                    "```\n{}\n...のこり{}文字は省略しちゃうね！\n```",
+                    "```\n{}\n...のこり{}文字は省略しちゃうね\n```",
                     &output[..1960],
                     output.len() - 1960
                 )
@@ -150,7 +150,7 @@ fn interpreter(code: Vec<BrainfuckCommand>, input: &str) -> Result<String, Strin
             BrainfuckCommand::LoopStart => {
                 loop_count += 1;
                 if loop_count > MAX_LOOP_COUNT {
-                    return Err("ループが多すぎるよ！　無限ループじゃない？".to_owned());
+                    return Err("ループが多すぎるよ、無限ループだったりしない？".to_owned());
                 }
 
                 if memory[memory_pointer] == 0 {
@@ -167,7 +167,7 @@ fn interpreter(code: Vec<BrainfuckCommand>, input: &str) -> Result<String, Strin
                             break;
                         }
                         if loop_depth > MAX_LOOP_DEPTH {
-                            return Err("ループが深すぎるよ！".to_owned());
+                            return Err("ループが深すぎるよ".to_owned());
                         }
                     }
                 } else {

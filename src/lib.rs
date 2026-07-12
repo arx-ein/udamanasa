@@ -141,16 +141,16 @@ impl EventHandler for Bot {
         };
 
         let message_hello_list = [
-            "おはようっ！",
-            "やっほー！",
-            "ふわぁ、今日もがんばるよー！",
-            "あれっ？　寝ちゃってた？",
-            "おすし買ってきたよー！",
-            "たーだいまーっ！",
-            "まなさちゃん、参上！",
-            "おはよう、みんな！",
-            "だれかいるー？",
-            "まなさは元気ですっ！",
+            "みんなおはよう、元気かな？",
+            "やぁ、しばらくぶりだね",
+            "ふわぁ、今日もがんばろっか",
+            "あれ、寝ちゃってたかな",
+            "おすし買ってきたよ",
+            "ただいま～",
+            "まなさがやってきたよ",
+            "だれかいるかな？",
+            "まなさは元気にやってるよ",
+            "おはよう～"
         ];
 
         let message_hello = *message_hello_list.choose(&mut rng()).unwrap();
@@ -239,7 +239,7 @@ impl EventHandler for Bot {
                 .find(|cmd| cmd.name == command.data.name)
             {
                 Some(cmd) => (cmd.run)(command.data.options(), command_context).await,
-                None => "知らないコマンドだよ！".to_owned(),
+                None => "そのコマンドは知らないかも".to_owned(),
             };
 
             let data = CreateInteractionResponseMessage::new().content(content);
@@ -283,7 +283,7 @@ async fn direct_message(bot: &Bot, ctx: &Context, msg: &Message) {
         None => {
             let _ = &msg
                 .channel_id
-                .say(&ctx.http, "しらないコマンドだよ")
+                .say(&ctx.http, "そのコマンドは知らないかも")
                 .await
                 .unwrap();
         }

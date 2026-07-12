@@ -10,7 +10,7 @@ pub const PREFIX_ISPRIME_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "isprime",
     alias: &[],
     usage: "u!isprime <n>",
-    description: "nが素数かどうかを判定するよ！",
+    description: "nが素数かどうかを判定するよ",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,
     is_guild_command: true,
@@ -21,7 +21,7 @@ async fn run_old(ctx: CommandContext<'_>) {
 
     if command_args.len() != 1 {
         ctx.channel_id
-            .say(ctx.cache_http(), "使い方: `!isprime <number>`")
+            .say(ctx.cache_http(), "使い方: `u!isprime <number>`")
             .await
             .unwrap();
         return;
@@ -29,7 +29,7 @@ async fn run_old(ctx: CommandContext<'_>) {
 
     let Ok(num) = command_args[0].parse::<u64>() else {
         ctx.channel_id
-            .say(ctx.cache_http(), "わかんないよ")
+            .say(ctx.cache_http(), "わからないなあ")
             .await
             .unwrap();
         return;
@@ -47,7 +47,7 @@ async fn run_old(ctx: CommandContext<'_>) {
 pub const SLASH_ISPRIME_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "isprime",
     usage: "/isprime <n>",
-    description: "nが素数かどうかを判定するよ！",
+    description: "nが素数かどうかを判定するよ",
     register,
     run: |options, _| Box::pin(async move { run(options) }),
     is_local_command: false,
@@ -55,7 +55,7 @@ pub const SLASH_ISPRIME_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("isprime")
-        .description("nが素数かどうかを判定するよ！")
+        .description("nが素数かどうかを判定するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 serenity::model::application::CommandOptionType::Integer,
@@ -69,7 +69,7 @@ fn register() -> serenity::builder::CreateCommand {
 
 fn run(options: Vec<serenity::model::application::ResolvedOption<'_>>) -> String {
     let ResolvedValue::Integer(num) = options[0].value else {
-        return "わかんないよ".to_owned();
+        return "わからないなあ".to_owned();
     };
     let num = num as u64;
 
@@ -120,11 +120,11 @@ fn message(num: u64, is_prime: bool, factor: Vec<u64>) -> String {
         "{}は{}",
         num,
         if is_prime {
-            "素数だよ！".to_owned()
+            "素数だね".to_owned()
         } else if factor.is_empty() {
-            "素数じゃないよ。あたりまえでしょ？".to_owned()
+            "素数じゃないよ。あたりまえじゃない？".to_owned()
         } else {
-            format!("素数じゃないよ。素因数は{factor:?}だよ。")
+            format!("素数じゃない。素因数は{factor:?}だね。")
         }
     )
 }

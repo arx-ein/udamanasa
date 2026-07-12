@@ -8,7 +8,7 @@ pub const PREFIX_VARBULK_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "varbulk",
     alias: &[],
     usage: "u!varbulk <codeblock>",
-    description: ";区切りで複数の変数を一度に定義するよ！",
+    description: ";区切りで複数の変数を一度に定義するよ",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,
     is_guild_command: true,

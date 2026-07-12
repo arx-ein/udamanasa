@@ -13,7 +13,7 @@ pub const PREFIX_VAR_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "var",
     alias: &[],
     usage: "u!var <name>=<expr>",
-    description: "calcで使える変数を定義するよ！",
+    description: "calcで使える変数を定義するよ",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,
     is_guild_command: true,
@@ -80,7 +80,7 @@ pub async fn delete_var(reply: &ChannelId, cache_http: &Http, var: &String, bot:
     bot.database.delete_var(var).await.ok();
     bot.variables.remove(var);
     reply
-        .say(&cache_http, format!("変数 `{var}` を削除したよ！"))
+        .say(&cache_http, format!("変数 `{var}` を削除したよ"))
         .await
         .unwrap();
 }
@@ -98,13 +98,13 @@ pub async fn list_var(reply: ChannelId, cache_http: &Http, bot: &Bot) {
             }
             result.push_str("```");
             if result.is_empty() {
-                result = "変数はないよ！".to_owned();
+                result = "変数は無いね".to_owned();
             }
             reply.say(&cache_http, result).await.unwrap();
         }
         Err(e) => {
             reply
-                .say(&cache_http, format!("変数の取得に失敗したよ！: {e}"))
+                .say(&cache_http, format!("変数の取得に失敗しちゃった: {e}"))
                 .await
                 .unwrap();
         }

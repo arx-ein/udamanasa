@@ -9,7 +9,7 @@ pub const PREFIX_FETCH_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "fetch",
     alias: &[],
     usage: "u!fetch [count]",
-    description: "このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ！",
+    description: "このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ",
     run: |ctx| Box::pin(run_prefix(ctx)),
     is_dm_command: false,
     is_guild_command: true,
@@ -18,7 +18,7 @@ pub const PREFIX_FETCH_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
 pub const SLASH_FETCH_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "fetch",
     usage: "/fetch [count]",
-    description: "このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ！",
+    description: "このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ",
     register,
     run: |option, ctx| {
         let opts = parse_options(option);
@@ -29,7 +29,7 @@ pub const SLASH_FETCH_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("fetch")
-        .description("このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ！")
+        .description("このチャンネルに投稿された、覚えているのより古いメッセージを取得するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 serenity::all::CommandOptionType::Integer,

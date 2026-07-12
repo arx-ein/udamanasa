@@ -5,7 +5,7 @@ use serenity::all::ResolvedValue;
 pub const SLASH_CHANNEL_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "channel",
     usage: "/channel <channel>",
-    description: "代筆先のチャンネルを指定するよ！",
+    description: "代筆先のチャンネルを指定するよ",
     register,
     run: |options, ctx| Box::pin(async move { run(options, ctx).await }),
     is_local_command: false,
@@ -13,12 +13,12 @@ pub const SLASH_CHANNEL_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("channel")
-        .description("代筆先のチャンネルを指定するよ！")
+        .description("代筆先のチャンネルを指定するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 serenity::model::application::CommandOptionType::Channel,
                 "channel",
-                "代筆先のチャンネルを指定するよ！",
+                "代筆先のチャンネルを指定するよ",
             )
             .required(true),
         )
@@ -57,7 +57,7 @@ pub const PREFIX_CHANNEL_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "channel",
     alias: &[],
     usage: "u!channel",
-    description: "代筆先のチャンネルを指定するよ！",
+    description: "代筆先のチャンネルを指定するよ",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,
     is_guild_command: false,
@@ -94,7 +94,7 @@ pub async fn run_old(ctx: CommandContext<'_>) {
     };
     let Some(&next_pointer) = ctx.bot.channel_ids.get(selector) else {
         ctx.channel_id
-            .say(&ctx.cache_http(), "しらないチャンネルだよ")
+            .say(&ctx.cache_http(), "そのチャンネルは知らないかも")
             .await
             .unwrap();
         return;

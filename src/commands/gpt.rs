@@ -10,7 +10,7 @@ use serenity::model::application::ResolvedOption;
 pub const SLASH_GPT_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "gpt",
     usage: "/gpt <model>",
-    description: "GPTの設定を変更するよ！",
+    description: "GPTの設定を変更するよ",
     register,
     run: |option, ctx| {
         let opts = parse(option, ctx.bot);

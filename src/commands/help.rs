@@ -7,7 +7,7 @@ pub const PREFIX_HELP_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "help",
     alias: &["たすけて", "助けて"],
     usage: "u!help",
-    description: "まなさの自己紹介だよ！",
+    description: "まなさの自己紹介だよ",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: true,
     is_guild_command: true,
@@ -16,7 +16,7 @@ pub const PREFIX_HELP_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
 pub const SLASH_HELP_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "help",
     usage: "/help",
-    description: "ヘルプを表示するよ！",
+    description: "ヘルプを表示するよ",
     register,
     run: |_, ctx| {
         let result = run(ctx.bot);
@@ -25,9 +25,9 @@ pub const SLASH_HELP_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     is_local_command: false,
 };
 
-const ABOUT_ME: &str = "# まなさの自己紹介だよ！\n";
-const ABOUT_GHOSTWRITE: &str = "## 代筆機能があるよ！\nまなさは代筆ができるよ！　DMに送ってもらったメッセージを`u!channel`で指定されたチャンネルに転送するよ！\n";
-const ABOUT_AI: &str = "## おはなしもできるよ！\nまなさの部屋でいっぱい話しかけてね！\n";
+const ABOUT_ME: &str = "# まなさの自己紹介をするね\n";
+const ABOUT_GHOSTWRITE: &str = "## 代筆ができるよ\nDMに送ってもらったメッセージは`u!channel`で指定されたチャンネルに転送するね\n";
+const ABOUT_AI: &str = "## おはなしがしたいな\nまなさの部屋でいっぱい話しかけてね\n";
 
 fn generate_help_rows(usages: &[(&str, &str)], usage_space_minimum: usize) -> String {
     let usage_space = usages
@@ -55,7 +55,7 @@ fn generate_slash_help(slash_commands: &[ManamiSlashCommand]) -> String {
         USAGE_SPACE_MINIMUM,
     );
     let mut content = MessageBuilder::new();
-    content.push("## まなさはスラッシュコマンドに対応しているよ！\n");
+    content.push("## スラッシュコマンドに対応しているよ\n");
     content.push("```\n");
     content.push(help_str);
     content.push("\n```\n");
@@ -73,7 +73,7 @@ fn generate_dm_help(prefix_commands: &[ManamiPrefixCommand]) -> String {
     );
 
     let mut content = MessageBuilder::new();
-    content.push("## まなさはDMでコマンドを受け付けるよ！\n");
+    content.push("## DMでコマンドを受け付けるよ\n");
     content.push("```\n");
     content.push(help_str);
     content.push("\n```\n");
@@ -91,7 +91,7 @@ fn generate_guild_help(prefix_commands: &[ManamiPrefixCommand]) -> String {
     );
 
     let mut content = MessageBuilder::new();
-    content.push("## まなさはグループチャットでコマンドを受け付けるよ！\n");
+    content.push("## グループチャットでコマンドを受け付けるよ\n");
     content.push("```\n");
     content.push(help_str);
     content.push("\n```\n");
@@ -114,7 +114,7 @@ fn generate_help(
 }
 
 pub fn register() -> CreateCommand {
-    CreateCommand::new("help").description("まなさの自己紹介だよ！")
+    CreateCommand::new("help").description("まなさの自己紹介をするね")
 }
 
 pub fn run(bot: &Bot) -> String {
@@ -140,6 +140,6 @@ mod tests {
 
         let help = generate_help(&slash_commands, &prefix_commands);
         println!("{help}");
-        assert!(help.contains("まなさの自己紹介だよ！"));
+        assert!(help.contains("まなさの自己紹介をするね"));
     }
 }

@@ -5,7 +5,7 @@ use serenity::model::application::{CommandOptionType, ResolvedOption, ResolvedVa
 pub const SLASH_ECHO_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "echo",
     usage: "/echo <text>",
-    description: "もらったメッセージをオウム返しするよ！",
+    description: "もらったメッセージをオウム返しするよ",
     register,
     run: |opt, _| {
         let result = run(opt);
@@ -25,7 +25,7 @@ pub fn run(opt: Vec<ResolvedOption<'_>>) -> String {
 
 pub fn register() -> CreateCommand {
     CreateCommand::new("echo")
-        .description("もらったメッセージをそのまま返すよ！")
+        .description("もらったメッセージをそのまま返すよ")
         .add_option(
             CreateCommandOption::new(CommandOptionType::String, "text", "返すテキスト")
                 .required(true),

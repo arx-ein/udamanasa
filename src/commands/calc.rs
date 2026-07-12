@@ -6,7 +6,7 @@ pub const PREFIX_CALC_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: "calc",
     alias: &[],
     usage: "u!calc <expr>",
-    description: "数式を計算するよ！",
+    description: "数式を計算するよ",
     run: |ctx| Box::pin(run(ctx)),
     is_dm_command: true,
     is_guild_command: true,
