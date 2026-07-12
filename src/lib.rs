@@ -1,4 +1,4 @@
-/// まなみのメインモジュール
+/// まなさのメインモジュール
 /// メッセージ・コマンドのハンドリングを担当
 use std::{
     sync::{Arc, Mutex},
@@ -44,12 +44,12 @@ pub struct Bot {
     pub channel_ids: Vec<ChannelId>,
     pub debug_channel_id: ChannelId,
 
-    // まなみの情報
-    // まなみのバージョン情報
+    // まなさの情報
+    // まなさのバージョン情報
     pub commit_hash: Option<String>,
     pub commit_date: Option<String>,
 
-    // まなみの雑談用のAI
+    // まなさの雑談用のAI
     pub gpt: ai::GptAI,
 
     // コマンド用のデータ
@@ -147,10 +147,10 @@ impl EventHandler for Bot {
             "あれっ？　寝ちゃってた？",
             "おすし買ってきたよー！",
             "たーだいまーっ！",
-            "まなみちゃん、参上！",
+            "まなさちゃん、参上！",
             "おはよう、みんな！",
             "だれかいるー？",
-            "まなみは元気ですっ！",
+            "まなさは元気ですっ！",
         ];
 
         let message_hello = *message_hello_list.choose(&mut rng()).unwrap();
@@ -326,7 +326,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
 
     // if message does not contains any command, ignore
     let command_pattern =
-        Regex::new(r"(?ms)((?:まなみ(?:ちゃん)?(?:\s|、|は|って|の)?)|^u!)(.*)").unwrap();
+        Regex::new(r"(?ms)((?:まなさ(?:ちゃん)?(?:\s|、|は|って|の)?)|^u!)(.*)").unwrap();
     let (_prefix, input_string): (String, String) = match command_pattern.captures(&msg.content) {
         Some(caps) => (
             caps.get(1).unwrap().as_str().to_owned(),
@@ -341,7 +341,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
                 bot.reply_to_all_mode.lock().unwrap().renew(); // 期限更新
                 let content = bot.gpt.generate_with_model(response_to_all_model).await;
                 let content = match content {
-                    Ok(content) => content.replace("うだまなみ: ", ""),
+                    Ok(content) => content.replace("うだまなさ: ", ""),
                     Err(e) => {
                         format!("Error sending message: {e:?}")
                     }
@@ -377,7 +377,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
             }
 
             if msg.channel_id.get() == bot.debug_channel_id.get() {
-                // まなみが自由に応答するコーナー
+                // まなさが自由に応答するコーナー
                 let content = if response_to_all {
                     bot.reply_to_all_mode.lock().unwrap().renew(); // 期限更新
                                                                    // ↓全レスモードなら全レス用のモデルを使用
@@ -386,7 +386,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
                     bot.gpt.generate().await
                 };
                 let content = match content {
-                    Ok(content) => content.replace("うだまなみ: ", ""),
+                    Ok(content) => content.replace("うだまなさ: ", ""),
                     Err(e) => {
                         format!("Error sending message: {e:?}")
                     }

@@ -10,7 +10,7 @@ use crate::commands::ManamiSlashCommand;
 pub const SLASH_BF_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "bf",
     usage: "/bf <code> [input]",
-    description: "まなみはいんたぷりた？　なんだよ！",
+    description: "まなさはいんたぷりた？　なんだよ！",
     register,
     run: |options, _| {
         let result = run(options);
