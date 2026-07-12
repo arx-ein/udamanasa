@@ -326,6 +326,7 @@ struct OpenAiMessage {
 #[derive(Serialize)]
 struct OpenAiRequest {
     model: String,
+    reasoning_effort: String,
     messages: Vec<OpenAiMessage>,
 }
 
@@ -379,6 +380,7 @@ impl ChatBackend for GptBackend {
 
         let request = OpenAiRequest {
             model: model.to_string(),
+            reasoning_effort: "minimal".to_owned(),
             messages,
         };
         serde_json::to_string(&request).unwrap()
