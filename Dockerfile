@@ -15,6 +15,6 @@ COPY . .
 RUN cargo build --release
 
 FROM debian:trixie-slim
-COPY --from=builder /app/target/release/udamanami /usr/local/bin/udamanami
+COPY --from=builder /app/target/release/udamanasa /usr/local/bin/udamanasa
 
-CMD ["udamanami"]
+CMD ["udamanasa"]
