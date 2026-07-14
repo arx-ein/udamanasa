@@ -396,9 +396,9 @@ pub struct MessageInfo {
 }
 
 impl MessageInfo {
-    pub fn chat_message(&self, my_userid: &UserId) -> ChatMessage {
+    pub fn to_chat_message(&self, my_userid: &UserId) -> ChatMessage {
         if self.user_id == *my_userid {
-            ChatMessage::model(&self.content)
+            ChatMessage::assistant(&self.content)
         } else {
             ChatMessage::user(&self.user_name, &self.content)
         }

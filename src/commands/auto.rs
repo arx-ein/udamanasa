@@ -1,4 +1,4 @@
-use crate::ai::GptModel;
+use crate::ai::available_models;
 use serenity::{
     builder::{CreateCommand, CreateCommandOption},
     model::application::{CommandOptionType, ResolvedValue},
@@ -23,15 +23,16 @@ pub const SLASH_AUTO_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 };
 
 pub fn register() -> CreateCommand {
+    let mut model_option =
+        CreateCommandOption::new(CommandOptionType::String, "model", "モデル").required(false);
+    // 選択肢は環境変数 LLM_MODELS（カンマ区切り）から生成する（Discord の上限は 25）。
+    for model in available_models().into_iter().take(25) {
+        model_option = model_option.add_string_choice(model.clone(), model);
+    }
+
     CreateCommand::new(COMMAND_NAME)
         .description("[sec]秒以内の連続した会話に対して、[model]を使って必ず返信するよ")
-        .add_option(
-            CreateCommandOption::new(CommandOptionType::String, "model", "モデル")
-                .required(false)
-                .add_string_choice("GPT-5", "gpt-5")
-                .add_string_choice("GPT-5 mini", "gpt-5-mini")
-                .add_string_choice("GPT-5 nano", "gpt-5-nano"),
-        )
+        .add_option(model_option)
         .add_option(
             CreateCommandOption::new(CommandOptionType::Integer, "sec", "秒数")
                 .required(false)
@@ -44,14 +45,14 @@ pub async fn run(option: Vec<ResolvedOption<'_>>, bot: &Bot) -> String {
     run_body(parse_options(option, bot), bot).await
 }
 
-fn parse_options(option: Vec<ResolvedOption<'_>>, bot: &Bot) -> (GptModel, Duration) {
+fn parse_options(option: Vec<ResolvedOption<'_>>, bot: &Bot) -> (String, Duration) {
     let model = option
         .iter()
         .fold(None, |model, option| match (option.name, &option.value) {
-            ("model", ResolvedValue::String(s)) => Some(GptModel::from(*s)),
+            ("model", ResolvedValue::String(s)) => Some((*s).to_owned()),
             _ => model,
         })
-        .unwrap_or_else(|| bot.gpt.get_model());
+        .unwrap_or_else(|| bot.ai.get_model());
 
     let sec = Duration::from_secs(
         option
@@ -66,7 +67,7 @@ fn parse_options(option: Vec<ResolvedOption<'_>>, bot: &Bot) -> (GptModel, Durat
     (model, sec)
 }
 
-async fn run_body((model, sec): (GptModel, Duration), bot: &Bot) -> String {
+async fn run_body((model, sec): (String, Duration), bot: &Bot) -> String {
     bot.reply_to_all_mode
         .lock()
         .unwrap()

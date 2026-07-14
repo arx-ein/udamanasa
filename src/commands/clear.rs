@@ -23,5 +23,5 @@ pub async fn run(ctx: CommandContext<'_>) {
         .await
         .unwrap();
 
-    ctx.bot.gpt.clear();
+    ctx.bot.ai.clear();
 }

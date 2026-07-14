@@ -64,12 +64,12 @@ pub async fn run_body(time: Option<u32>, ctx: &CommandContext<'_>) {
 
     let chat_messages = fetch_result
         .into_iter()
-        .map(|m| m.chat_message(self_id))
+        .map(|m| m.to_chat_message(self_id))
         .collect::<Vec<_>>();
 
     let result = ctx
         .bot
-        .gpt
+        .ai
         .generate_matome(chat_messages)
         .await
         .unwrap_or_else(|e| {

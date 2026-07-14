@@ -1,10 +1,11 @@
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
-use reqwest;
-use serde::{Deserialize, Serialize};
+use rig::client::CompletionClient;
+use rig::completion::{AssistantContent, CompletionModel, Message as RigMessage};
+use rig::providers::openai;
 
 const MANAMI_PROMPT: &str = r"
 ## 指示
@@ -105,316 +106,253 @@ const MATOME_PROMPT: &str = r"
 ```
 ";
 
-/// 会話ログ上での発言者の役割
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Role {
-    User,
-    Model,
+/// `LLM_MODELS` が未設定・空のときに使う既定モデル一覧。
+const DEFAULT_MODELS: &[&str] = &["gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.6-luna"];
+
+/// 利用可能なモデル一覧を環境変数 `LLM_MODELS`（カンマ区切り）から得る。
+/// 未設定または空のときは [`DEFAULT_MODELS`] にフォールバックする。
+/// スラッシュコマンドの選択肢と既定モデルの決定に使う。
+pub fn available_models() -> Vec<String> {
+    let from_env: Vec<String> = std::env::var("LLM_MODELS")
+        .unwrap_or_default()
+        .split(',')
+        .map(|m| m.trim().to_owned())
+        .filter(|m| !m.is_empty())
+        .collect();
+
+    if from_env.is_empty() {
+        DEFAULT_MODELS.iter().map(|s| (*s).to_owned()).collect()
+    } else {
+        from_env
+    }
 }
 
-/// プロバイダに依存しない会話ログ1件分
-#[derive(Clone, Debug)]
+/// プロバイダ非依存のチャットメッセージ。会話バッファと DB 由来のログで使う。
+#[derive(Clone, Copy)]
+pub enum Role {
+    User,
+    Assistant,
+}
+
+#[derive(Clone)]
 pub struct ChatMessage {
     pub role: Role,
-    pub text: String,
+    pub content: String,
 }
 
 impl ChatMessage {
+    /// ユーザー発言。話者名を内容の先頭に付ける（複数話者を区別するため）。
     pub fn user(user_name: &str, message: &str) -> Self {
         Self {
             role: Role::User,
-            text: format!("{user_name}: {message}"),
+            content: format!("{user_name}: {message}"),
         }
     }
 
-    pub fn model(message: &str) -> Self {
+    /// まなみ（アシスタント）の発言。
+    pub fn assistant(message: &str) -> Self {
         Self {
-            role: Role::Model,
-            text: message.to_owned(),
+            role: Role::Assistant,
+            content: message.to_owned(),
+        }
+    }
+
+    fn to_rig(&self) -> RigMessage {
+        match self.role {
+            Role::User => RigMessage::user(self.content.clone()),
+            Role::Assistant => RigMessage::assistant(self.content.clone()),
         }
     }
 }
 
-/// AIプロバイダごとのリクエスト/レスポンス形式の差異を吸収するトレイト。
-/// 新しいプロバイダを追加する場合は、このトレイトを実装した型を用意すればよい。
-pub trait ChatBackend {
-    type Model: Clone + Default + std::fmt::Display + for<'a> From<&'a str> + Send + Sync;
-
-    fn endpoint(model: &Self::Model) -> String;
-    fn headers(api_key: &str) -> Vec<(&'static str, String)>;
-    fn build_body(model: &Self::Model, system_instruction: &str, contents: &VecDeque<ChatMessage>) -> String;
-    fn parse_response(body: &str) -> Result<String>;
+/// まなみの雑談・要約用 AI。OpenAI 互換エンドポイント（`base_url` + `api_key`）を通すので、
+/// `base_url`・`api_key`・モデル名を変えるだけで各種プロバイダを使える。
+pub struct ManamiAi {
+    client: openai::CompletionsClient,
+    default_model: String,
+    model: Mutex<String>,
+    system_prompt: String,
+    conversation: Mutex<VecDeque<ChatMessage>>,
 }
 
-pub struct ChatAI<B: ChatBackend> {
-    model: Mutex<B::Model>,
-    api_key: String,
-    system_instruction: String,
-    contents: Mutex<VecDeque<ChatMessage>>,
-}
-
-impl<B: ChatBackend> ChatAI<B> {
-    pub fn new(api_key: &str) -> Self {
-        Self {
-            model: Mutex::new(B::Model::default()),
-            api_key: api_key.to_owned(),
-            system_instruction: String::new(),
-            contents: Mutex::new(VecDeque::new()),
-        }
+impl ManamiAi {
+    /// まなみのペルソナ付きで構築する。
+    pub fn manami(base_url: &str, api_key: &str, default_model: &str) -> Result<Self> {
+        Self::with_system_prompt(base_url, api_key, default_model, MANAMI_PROMPT)
     }
 
-    pub fn manami(api_key: &str) -> Self {
-        Self {
-            model: Mutex::new(B::Model::default()),
-            api_key: api_key.to_owned(),
-            system_instruction: MANAMI_PROMPT.to_owned(),
-            contents: Mutex::new(VecDeque::new()),
-        }
+    pub fn with_system_prompt(
+        base_url: &str,
+        api_key: &str,
+        default_model: &str,
+        system_prompt: &str,
+    ) -> Result<Self> {
+        // OpenAI 互換の Chat Completions クライアント（POST {base_url}/chat/completions）。
+        let client = openai::CompletionsClient::builder()
+            .api_key(api_key)
+            .base_url(base_url)
+            .build()
+            .map_err(|e| anyhow::anyhow!("failed to build LLM client: {e:?}"))?;
+
+        Ok(Self {
+            client,
+            default_model: default_model.to_owned(),
+            model: Mutex::new(default_model.to_owned()),
+            system_prompt: system_prompt.to_owned(),
+            conversation: Mutex::new(VecDeque::new()),
+        })
     }
 
     pub fn set_system_instruction(&mut self, instruction: &str) {
-        self.system_instruction = instruction.to_owned();
+        self.system_prompt = instruction.to_owned();
     }
 
     pub fn add_user_log(&self, user: &str, message: &str) {
-        let mut contents = self.contents.lock().unwrap();
-        contents.push_back(ChatMessage::user(user, message));
-        if contents.len() > 500 {
-            contents.pop_front();
-        }
+        self.push(ChatMessage::user(user, message));
     }
 
     pub fn add_model_log(&self, message: &str) {
-        let mut contents = self.contents.lock().unwrap();
-        contents.push_back(ChatMessage::model(message));
-        if contents.len() > 500 {
-            contents.pop_front();
+        self.push(ChatMessage::assistant(message));
+    }
+
+    fn push(&self, message: ChatMessage) {
+        let mut buf = self.conversation.lock().unwrap();
+        buf.push_back(message);
+        if buf.len() > 500 {
+            buf.pop_front();
         }
     }
 
     pub fn add_log_bulk(&self, messages: Vec<(String, &str)>) {
-        let mut contents = self.contents.lock().unwrap();
+        let mut buf = self.conversation.lock().unwrap();
         for (user, message) in messages {
-            let content = if user == "model" {
-                ChatMessage::model(message)
+            let msg = if user == "model" {
+                ChatMessage::assistant(message)
             } else {
                 ChatMessage::user(&user, message)
             };
-            contents.push_back(content);
+            buf.push_back(msg);
         }
-        let length = contents.len();
-        if length > 500 {
-            contents.drain(0..(length - 500));
+        let len = buf.len();
+        if len > 500 {
+            buf.drain(0..(len - 500));
         }
     }
 
     pub fn clear(&self) {
-        self.contents.lock().unwrap().clear();
+        self.conversation.lock().unwrap().clear();
     }
 
     pub fn debug(&self) -> String {
-        let model = self.model.lock().unwrap().clone();
-        let contents = self.contents.lock().unwrap();
-        B::build_body(&model, &self.system_instruction, &contents)
+        self.conversation
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|m| {
+                let role = match m.role {
+                    Role::User => "user",
+                    Role::Assistant => "model",
+                };
+                format!("{role}: {}", m.content)
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
-    pub async fn generate(&self) -> Result<String, anyhow::Error> {
-        let model = self.model.lock().unwrap().clone();
-        self.generate_with_model(model).await
-    }
-
-    pub async fn generate_with_model(&self, model: B::Model) -> Result<String, anyhow::Error> {
-        let body = {
-            let contents = self.contents.lock().unwrap();
-            B::build_body(&model, &self.system_instruction, &contents)
-        };
-        let (status, response) = send::<B>(&model, &self.api_key, body).await?;
-
-        if status.is_success() {
-            self.add_model_log(&response);
-            Ok(response)
-        } else {
-            Err(anyhow!(response))
-        }
-    }
-
-    pub async fn generate_matome(&self, messages: Vec<ChatMessage>) -> Result<String, anyhow::Error> {
-        let model = B::Model::default();
-        let contents: VecDeque<ChatMessage> = messages.into();
-        let body = B::build_body(&model, MATOME_PROMPT, &contents);
-
-        let (status, response) = send::<B>(&model, &self.api_key, body).await?;
-        if status.is_success() {
-            Ok(response)
-        } else {
-            Err(anyhow!(response))
-        }
-    }
-
-    pub fn set_model(&self, model: B::Model) {
+    pub fn set_model(&self, model: String) {
         *self.model.lock().unwrap() = model;
     }
 
-    pub fn get_model(&self) -> B::Model {
+    pub fn get_model(&self) -> String {
         self.model.lock().unwrap().clone()
     }
-}
 
-async fn send<B: ChatBackend>(
-    model: &B::Model,
-    api_key: &str,
-    body: String,
-) -> Result<(reqwest::StatusCode, String), anyhow::Error> {
-    let url = B::endpoint(model);
-    println!("Prompt: {body}");
-    let client = reqwest::Client::new();
-    let mut request = client.post(&url).header("Content-Type", "application/json");
-    for (key, value) in B::headers(api_key) {
-        request = request.header(key, value);
-    }
-    let response = request.body(body).send().await?;
-    let status = response.status();
-    let response_text = response.text().await?;
-    println!("Response: {response_text}");
-    let text = B::parse_response(&response_text)?;
-
-    Ok((status, text))
-}
-
-// ---- GPT backend ----
-
-#[derive(Clone)]
-pub enum GptModel {
-    Gpt5,
-    Gpt5Mini,
-    Gpt5Nano,
-}
-
-impl std::fmt::Display for GptModel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Gpt5 => write!(f, "gpt-5"),
-            Self::Gpt5Mini => write!(f, "gpt-5-mini"),
-            Self::Gpt5Nano => write!(f, "gpt-5-nano"),
-        }
-    }
-}
-
-impl From<&str> for GptModel {
-    fn from(model: &str) -> Self {
-        match model {
-            "gpt-5" => Self::Gpt5,
-            "gpt-5-mini" => Self::Gpt5Mini,
-            "gpt-5-nano" => Self::Gpt5Nano,
-            _ => Self::Gpt5Nano,
-        }
-    }
-}
-
-impl Default for GptModel {
-    fn default() -> Self {
-        Self::Gpt5Nano
-    }
-}
-
-#[derive(Serialize)]
-struct OpenAiMessage {
-    role: String,
-    content: String,
-}
-
-#[derive(Serialize)]
-struct OpenAiRequest {
-    model: String,
-    reasoning_effort: String,
-    messages: Vec<OpenAiMessage>,
-}
-
-#[derive(Deserialize)]
-struct OpenAiResponse {
-    choices: Vec<OpenAiChoice>,
-    // その他のフィールドは不要なため省略
-}
-
-#[derive(Deserialize)]
-struct OpenAiChoice {
-    message: OpenAiResponseMessage,
-}
-
-#[derive(Deserialize)]
-struct OpenAiResponseMessage {
-    content: String,
-}
-
-pub struct GptBackend;
-
-impl ChatBackend for GptBackend {
-    type Model = GptModel;
-
-    fn endpoint(_model: &GptModel) -> String {
-        "https://api.openai.com/v1/chat/completions".to_owned()
+    pub async fn generate(&self) -> Result<String> {
+        let model = self.get_model();
+        self.generate_with_model(&model).await
     }
 
-    fn headers(api_key: &str) -> Vec<(&'static str, String)> {
-        vec![("Authorization", format!("Bearer {api_key}"))]
-    }
-
-    fn build_body(model: &GptModel, system_instruction: &str, contents: &VecDeque<ChatMessage>) -> String {
-        let mut messages = Vec::with_capacity(contents.len() + 1);
-        if !system_instruction.is_empty() {
-            messages.push(OpenAiMessage {
-                role: "system".to_owned(),
-                content: system_instruction.to_owned(),
-            });
-        }
-        for message in contents {
-            let role = match message.role {
-                Role::User => "user",
-                Role::Model => "assistant",
-            };
-            messages.push(OpenAiMessage {
-                role: role.to_owned(),
-                content: message.text.clone(),
-            });
-        }
-
-        let request = OpenAiRequest {
-            model: model.to_string(),
-            reasoning_effort: "minimal".to_owned(),
-            messages,
+    pub async fn generate_with_model(&self, model: &str) -> Result<String> {
+        // 全レスモード未設定時などモデルが空なら、現在のモデルにフォールバックする。
+        let model = if model.trim().is_empty() {
+            self.get_model()
+        } else {
+            model.to_owned()
         };
-        serde_json::to_string(&request).unwrap()
+
+        // ロックは await をまたがず、ここでコピーして解放する。
+        let messages: Vec<ChatMessage> =
+            self.conversation.lock().unwrap().iter().cloned().collect();
+
+        if messages.is_empty() {
+            return Ok("やあ、どうしたのかな".to_owned());
+        }
+
+        let reply = self
+            .run_completion(&model, &self.system_prompt, messages)
+            .await?;
+        self.add_model_log(&reply);
+        Ok(reply)
     }
 
-    fn parse_response(body: &str) -> Result<String> {
-        let response = serde_json::from_str::<OpenAiResponse>(body)
-            .map_err(|e| anyhow!("Failed to parse response: {}\n {}", e, body))?;
-        let text = response
-            .choices
-            .into_iter()
-            .next()
-            .ok_or_else(|| anyhow!("No choices found"))?
-            .message
-            .content;
+    /// チャットログを渡して要約させる（会話バッファには影響しない）。
+    pub async fn generate_matome(&self, messages: Vec<ChatMessage>) -> Result<String> {
+        if messages.is_empty() {
+            return Ok("まとめるログがないよ".to_owned());
+        }
+        let model = self.default_model.clone();
+        self.run_completion(&model, MATOME_PROMPT, messages).await
+    }
 
-        Ok(text)
+    async fn run_completion(
+        &self,
+        model: &str,
+        preamble: &str,
+        messages: Vec<ChatMessage>,
+    ) -> Result<String> {
+        let mut rig_messages: Vec<RigMessage> = messages.iter().map(ChatMessage::to_rig).collect();
+
+        // rig の builder は prompt を末尾メッセージとして付けるので、
+        // バッファ末尾を prompt、それ以前を chat_history に割り当てる。
+        let prompt = rig_messages
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("no messages to send"))?;
+
+        let completion_model = self.client.completion_model(model);
+        let request = completion_model
+            .completion_request(prompt)
+            .messages(rig_messages)
+            .preamble(preamble.to_owned())
+            .build();
+
+        let response = completion_model.completion(request).await?;
+
+        let reply = response
+            .choice
+            .into_iter()
+            .filter_map(|content| match content {
+                AssistantContent::Text(text) => Some(text.text),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("");
+        Ok(reply)
     }
 }
-
-pub type GptAI = ChatAI<GptBackend>;
 
 #[cfg(test)]
-mod gpt_tests {
+mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_gpt_generate() {
-        let ai = GptAI::manami("");
-        ai.add_user_log("まいせりしるき", "まなさ、おはよう～　今日は何をする予定？");
-        let response = ai.generate().await;
-        match response {
-            Ok(res) => println!("Response: {res}"),
-            Err(err) => println!("Error: {err}"),
-        }
+    #[test]
+    fn available_models_never_empty() {
+        // 環境変数の有無にかかわらず、少なくとも既定モデルが返る。
+        assert!(!available_models().is_empty());
+    }
+
+    #[test]
+    fn chat_message_roles() {
+        assert_eq!(ChatMessage::user("宇田", "やあ").content, "宇田: やあ");
+        assert_eq!(ChatMessage::assistant("やっほー").content, "やっほー");
     }
 }

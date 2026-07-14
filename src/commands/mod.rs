@@ -5,7 +5,6 @@ use std::pin::Pin;
 
 use std::time::Instant;
 
-use crate::ai::GptModel;
 use std::time::Duration;
 
 use serenity::all::ResolvedOption;
@@ -22,10 +21,10 @@ pub mod dice;
 pub mod echo;
 pub mod endauto;
 pub mod fetch;
-pub mod gpt;
 pub mod help;
 pub mod imakita;
 pub mod isprime;
+pub mod model;
 pub mod listvar;
 pub mod ping;
 pub mod var;
@@ -35,7 +34,7 @@ pub mod varbulk;
 #[derive(Clone)]
 pub struct ReplyToAllModeData {
     pub until: Option<Instant>,
-    pub model: GptModel,
+    pub model: String,
     pub duration: Duration,
 }
 
@@ -49,12 +48,12 @@ impl ReplyToAllModeData {
     pub const fn blank() -> Self {
         Self {
             until: None,
-            model: GptModel::Gpt5Nano,
+            model: String::new(),
             duration: Duration::from_secs(0),
         }
     }
 
-    pub fn set(&mut self, model: GptModel, duration: Duration) {
+    pub fn set(&mut self, model: String, duration: Duration) {
         self.until = Instant::now().checked_add(duration);
         self.model = model;
         self.duration = duration;
@@ -163,7 +162,7 @@ pub fn slash_commands(disabled_commands: &[&str]) -> Vec<ManamiSlashCommand> {
         channel::SLASH_CHANNEL_COMMAND,
         dice::SLASH_DICE_COMMAND,
         fetch::SLASH_FETCH_COMMAND,
-        gpt::SLASH_GPT_COMMAND,
+        model::SLASH_MODEL_COMMAND,
         isprime::SLASH_ISPRIME_COMMAND,
     ]
     .into_iter()

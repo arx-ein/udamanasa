@@ -49,8 +49,8 @@ pub struct Bot {
     pub commit_hash: Option<String>,
     pub commit_date: Option<String>,
 
-    // まなさの雑談用のAI
-    pub gpt: ai::GptAI,
+    // まなみの雑談用のAI
+    pub ai: ai::ManamiAi,
 
     // コマンド用のデータ
     // ログなどを保存するDB
@@ -75,7 +75,7 @@ impl Bot {
 
         guild_id: GuildId,
 
-        gpt: ai::GptAI,
+        ai: ai::ManamiAi,
 
         commit_hash: Option<String>,
         commit_date: Option<String>,
@@ -98,7 +98,7 @@ impl Bot {
             commit_date,
             variables,
             reply_to_all_mode,
-            gpt,
+            ai,
             prefix_commands,
             slash_commands,
             database,
@@ -308,7 +308,7 @@ async fn save_guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
 
     // AIのためにメッセージを保存する
     if msg.channel_id.get() == bot.debug_channel_id.get() && !msg.author.bot {
-        bot.gpt.add_user_log(user_name, &msg.content);
+        bot.ai.add_user_log(user_name, &msg.content);
     }
 }
 
@@ -339,7 +339,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
                 && (response_to_all || rng().random::<f32>() < 0.3)
             {
                 bot.reply_to_all_mode.lock().unwrap().renew(); // 期限更新
-                let content = bot.gpt.generate_with_model(response_to_all_model).await;
+                let content = bot.ai.generate_with_model(&response_to_all_model).await;
                 let content = match content {
                     Ok(content) => content.replace("うだまなさ: ", ""),
                     Err(e) => {
@@ -381,9 +381,9 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
                 let content = if response_to_all {
                     bot.reply_to_all_mode.lock().unwrap().renew(); // 期限更新
                                                                    // ↓全レスモードなら全レス用のモデルを使用
-                    bot.gpt.generate_with_model(response_to_all_model).await
+                    bot.ai.generate_with_model(&response_to_all_model).await
                 } else {
-                    bot.gpt.generate().await
+                    bot.ai.generate().await
                 };
                 let content = match content {
                     Ok(content) => content.replace("うだまなさ: ", ""),
