@@ -1,7 +1,13 @@
 ## 概要
 
-Selenity製Discord bot「うだまなみ」。
+Selenity製Discord bot「うだまなみ」のフォーク、「うだまなさ」。
 DMに送ったメッセージを指定チャンネルに送る代筆機能と、LLMに接続されたChat bot機能、そして各種のコマンドを実行する機能を持つ。
+
+## fork specificity
+
+The following agent-targeted documents are written for the upstream "udamanami" (followed by `main` branch) and may not be entirely true for this fork "udamanasa" (developed on `dev` branch).
+There are several changes applied to "udamanasa" from "udamanami".
+Use the docs as reference but not ground truth, which should be derived from the codebase.
 
 ## docs routing
 
