@@ -41,9 +41,9 @@ ENV COMMIT_HASH=${COMMIT_HASH} \
 # and a throwaway directory when the image is run locally without a volume.
 RUN mkdir -p /data
 
-COPY --from=builder /app/target/release/udamanami /usr/local/bin/udamanami
+COPY --from=builder /app/target/release/udamanasa /usr/local/bin/udamanasa
 COPY app/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
-CMD ["udamanami"]
+CMD ["udamanasa"]

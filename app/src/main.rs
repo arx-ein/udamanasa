@@ -98,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("Err creating client");
 
     // ready を待たなくてよい。D1 を見るだけで gateway には依存しない。
-    tokio::spawn(udamanami::summarizer::run(bot, client.http.clone()));
+    tokio::spawn(udamanasa::summarizer::run(bot, client.http.clone()));
 
     client.start().await?;
 

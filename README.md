@@ -32,9 +32,9 @@ cargo run
 Docker で動かす場合は、環境変数をまとめたファイルを渡します。
 
 ```sh
-docker build -t udamanami .
+docker build -t udamanasa .
 docker run --rm --env-file .env \
-  -v "$PWD/data:/data" udamanami
+  -v "$PWD/data:/data" udamanasa
 ```
 
 `entrypoint.sh` は `UDAMANAMI_ENV_SECRET` が未設定なら何もせず、
