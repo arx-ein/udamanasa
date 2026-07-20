@@ -1,23 +1,23 @@
-name = "udamanami-db-api"
+name = "udamanasa-db-api"
 main = "build/worker/shim.mjs"
-compatibility_date = "2025-07-01"
+compatibility_date = "2026-07-20"
 
 [build]
 command = "worker-build --release"
 
 # D1: 本文・メタデータ。
-#   wrangler d1 create udamanami
+#   wrangler d1 create udamanasa
 # で作成し、出力された database_id を下に貼る。
 [[d1_databases]]
 binding = "DB"
-database_name = "udamanami"
-database_id = "6578b5fa-41af-429d-9e1c-bfc67c60db8e"
+database_name = "udamanasa"
+database_id = "ec8e1d42-e383-41d7-b788-48393174e13b"
 
 # Vectorize: 埋め込みベクトル。次元は使う埋め込みモデルに合わせる(未確定)。
-#   wrangler vectorize create udamanami-memory --dimensions=1536 --metric=cosine
+#   wrangler vectorize create udamanasa-memory --dimensions=1536 --metric=cosine
 [[vectorize]]
 binding = "VECTORIZE"
-index_name = "udamanami-memory"
+index_name = "udamanasa-memory"
 
 # シークレット(wrangler secret put <NAME> で設定):
 #   OPENAI_API_KEY ... 埋め込み生成用
