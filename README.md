@@ -23,7 +23,7 @@ export LLM_MODELS=gpt-5.4-mini,gpt-5.4-nano,gpt-5.6-luna  # 選べるモデル�
 export DEFAULT_CHANNEL_ID=...   # 必須（代筆先が未設定のときの既定の送信先）
 export DEBUG_ROOM_ID=...        # AI 雑談・起動あいさつを流すチャンネル
 # 任意: LLM_MODEL（既定モデル）, LLM_BASE_URL（既定は OpenAI）
-# 任意: JAIL_MARK_ROLE_ID, JAIL_MAIN_ROLE_ID, DISABLED_COMMANDS
+# 任意: DISABLED_COMMANDS
 # 任意: DATABASE_PATH（既定は ./db.sqlite）
 
 cargo run
@@ -58,8 +58,6 @@ GCP Compute Engine（Container-Optimized OS）へロールアウトします。
 | `LLM_BASE_URL` | | OpenAI 互換の base URL（既定 `https://api.openai.com/v1`） |
 | `DEFAULT_CHANNEL_ID` | ✓ | 代筆先が未設定のときの既定の送信先 |
 | `DEBUG_ROOM_ID` | | AI 雑談・起動あいさつ用チャンネル |
-| `JAIL_MARK_ROLE_ID` | | jail コマンド用ロール |
-| `JAIL_MAIN_ROLE_ID` | | jail コマンド用ロール |
 | `DISABLED_COMMANDS` | | 無効化するコマンド名（カンマ区切り） |
 | `DATABASE_PATH` | | SQLite の保存先（既定 `./db.sqlite`） |
 | `COMMIT_HASH` / `COMMIT_DATE` | | バージョン表示用（CI が自動設定） |

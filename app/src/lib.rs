@@ -1,14 +1,9 @@
 /// まなさのメインモジュール
 /// メッセージ・コマンドのハンドリングを担当
-use std::{
-    sync::{Arc, Mutex},
-    time::Instant,
-};
+use std::sync::{Arc, Mutex};
 
 use rand::rng;
 use rand::{prelude::IndexedRandom, Rng};
-
-use dashmap::DashMap;
 
 use regex::Regex;
 use serenity::all::{MessageId, MessageUpdateEvent};
@@ -20,7 +15,7 @@ use serenity::{
         application::Interaction,
         channel::Message,
         gateway::Ready,
-        id::{ChannelId, GuildId, RoleId, UserId},
+        id::{ChannelId, GuildId, UserId},
     },
     prelude::*,
 };
@@ -85,13 +80,6 @@ pub struct Bot {
     pub slash_commands: Vec<ManamiSlashCommand>,
     pub prefix_commands: Vec<ManamiPrefixCommand>,
 
-    // jailコマンドのデータ
-    pub jail_process: Arc<DashMap<UserId, (usize, Instant)>>,
-    pub jail_id: Arc<Mutex<usize>>,
-    // Jail用のRoleのID
-    pub jail_mark_role_id: RoleId,
-    pub jail_main_role_id: RoleId,
-
     // var, calcコマンドのデータ
     pub variables: EvalContext,
 }
@@ -103,8 +91,6 @@ impl Bot {
         debug_channel_id: ChannelId,
 
         guild_id: GuildId,
-        jail_mark_role_id: RoleId,
-        jail_main_role_id: RoleId,
 
         ai: ai::ManamiAi,
 
@@ -116,21 +102,15 @@ impl Bot {
         database: BotDatabase,
     ) -> Self {
         let variables = database.retrieve_eval_context().await;
-        let jail_process = Arc::new(DashMap::new());
-        let jail_id = Arc::new(Mutex::new(0));
         let reply_to_all_mode: Arc<Mutex<ReplyToAllModeData>> =
             Arc::new(Mutex::new(ReplyToAllModeData::blank()));
         let prefix_commands = prefix_commands(disabled_commands);
         let slash_commands = slash_commands(disabled_commands);
 
         Self {
-            jail_process,
-            jail_id,
             default_channel_id,
             debug_channel_id,
             guild_id,
-            jail_mark_role_id,
-            jail_main_role_id,
             commit_hash,
             commit_date,
             variables,
@@ -227,26 +207,6 @@ impl EventHandler for Bot {
             .filter(|cmd| !cmd.is_local_command)
         {
             let _ = Command::create_global_command(&ctx.http, (command.register)()).await;
-        }
-
-        // roles のいずれかが付いているユーザーを恩赦
-        let guild = self.guild_id;
-        let roles = [self.jail_mark_role_id, self.jail_main_role_id];
-        let members = guild.members(&ctx.http, None, None).await.unwrap();
-
-        for member in members {
-            if member.roles.iter().any(|role| roles.contains(role)) {
-                unjail::unjail_and_notify(
-                    self.debug_channel_id,
-                    &ctx,
-                    member.user.id,
-                    &guild,
-                    &roles,
-                    None,
-                    &self.jail_process,
-                )
-                .await;
-            }
         }
     }
 

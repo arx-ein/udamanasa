@@ -177,8 +177,6 @@ pub fn slash_commands(disabled_commands: &[&str]) -> Vec<ManamiSlashCommand> {
         varbulk::SLASH_VARBULK_COMMAND,
         deletevar::SLASH_DELETEVAR_COMMAND,
         listvar::SLASH_LISTVAR_COMMAND,
-        jail::SLASH_JAIL_COMMAND,
-        unjail::SLASH_UNJAIL_COMMAND,
         imakita::SLASH_IMAKITA_COMMAND,
         memory::SLASH_MEMORY_COMMAND,
         summarize::SLASH_SUMMARIZE_COMMAND,
