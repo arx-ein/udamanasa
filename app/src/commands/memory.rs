@@ -8,7 +8,7 @@ const USAGE: &str = "/memory [list <page>|get <id>|search <query>]";
 pub const SLASH_MEMORY_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "memory",
     usage: USAGE,
-    description: "まなみの記憶を覗けるよ！",
+    description: "まなさの記憶を覗けるよ！",
     register,
     run: |options, ctx| Box::pin(async move { run(options, ctx).await }),
     is_local_command: true,
@@ -16,7 +16,7 @@ pub const SLASH_MEMORY_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("memory")
-        .description("まなみの記憶を覗けるよ！")
+        .description("まなさの記憶を覗けるよ！")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 CommandOptionType::SubCommand,

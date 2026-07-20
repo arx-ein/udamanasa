@@ -55,14 +55,14 @@ fn prefix_lines(text: &str, prefix: &str) -> String {
         .join("\n")
 }
 
-/// まなみの返信が履歴を模倣して先頭へ付けてしまう接頭辞を剥がす。
+/// まなさの返信が履歴を模倣して先頭へ付けてしまう接頭辞を剥がす。
 /// (1) 先頭の時刻ブロック `[YYYY-MM-DD HH:MM]` を除去し、
-/// (2) 続く `まなみ:` / `うだまなみ:`（全角・半角コロン）を、**コロン付きのときだけ**除去する。
-/// コロン必須にすることで「まなみだよ！」のような正当な本文を誤って削らない。
+/// (2) 続く `まなさ:` / `うだまなさ:`（全角・半角コロン）を、**コロン付きのときだけ**除去する。
+/// コロン必須にすることで「まなさだよ！」のような正当な本文を誤って削らない。
 pub fn strip_leading_prefix(text: &str) -> String {
     // 生成ごとに1回しか通らないので、既存流儀（lib.rs）に倣い都度コンパイルする。
     let stamp = Regex::new(r"^\s*\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\]\s*").unwrap();
-    let name = Regex::new(r"^\s*(?:うだまなみ|まなみ)\s*[:：]\s*").unwrap();
+    let name = Regex::new(r"^\s*(?:うだまなさ|まなさ)\s*[:：]\s*").unwrap();
 
     let without_stamp = stamp.replace(text, "");
     let without_name = name.replace(&without_stamp, "");
@@ -76,20 +76,20 @@ mod tests {
     #[test]
     fn strips_timestamp_and_name_prefix() {
         assert_eq!(
-            strip_leading_prefix("[2026-07-17 12:34] まなみ: やっほー"),
+            strip_leading_prefix("[2026-07-17 12:34] まなさ: やっほー"),
             "やっほー"
         );
         assert_eq!(
             strip_leading_prefix("[2026-07-17 12:34] やっほー"),
             "やっほー"
         );
-        assert_eq!(strip_leading_prefix("うだまなみ: やっほー"), "やっほー");
+        assert_eq!(strip_leading_prefix("うだまなさ: やっほー"), "やっほー");
     }
 
     #[test]
     fn keeps_legitimate_body_starting_with_name() {
         // コロンが無ければ本文とみなして残す。
-        assert_eq!(strip_leading_prefix("まなみだよ！"), "まなみだよ！");
+        assert_eq!(strip_leading_prefix("まなさだよ！"), "まなさだよ！");
         assert_eq!(strip_leading_prefix("やっほー"), "やっほー");
     }
 
@@ -97,7 +97,7 @@ mod tests {
     fn strips_double_timestamp() {
         // 二重に焼かれても先頭ブロックを1つ剥がし、名前を消せば本文が残る。
         assert_eq!(
-            strip_leading_prefix("[2026-07-17 12:34] まなみ: 本文"),
+            strip_leading_prefix("[2026-07-17 12:34] まなさ: 本文"),
             "本文"
         );
     }

@@ -458,9 +458,9 @@ mod tests {
             Role::Assistant => panic!("他人の発言は User になるはず"),
         }
 
-        // user_name が "まなみ" でも、自分の user_id なら人間扱いしない(退行防止)。
+        // user_name が "まなさ" でも、自分の user_id なら人間扱いしない(退行防止)。
         assert!(matches!(
-            info(999, "まなみ").to_chat_message(&me).role,
+            info(999, "まなさ").to_chat_message(&me).role,
             Role::Assistant
         ));
     }

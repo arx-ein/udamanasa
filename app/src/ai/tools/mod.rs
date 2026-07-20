@@ -22,7 +22,7 @@ pub trait Tool {
     async fn call(ctx: ToolCallContext<'_>) -> Result<String, String>;
 }
 
-/// まなみが利用できる全ツールの定義一覧。エージェント実行時にモデルへ登録する。
+/// まなさが利用できる全ツールの定義一覧。エージェント実行時にモデルへ登録する。
 pub fn definitions() -> Vec<ToolDefinition> {
     vec![
         watch::Watch::def(),

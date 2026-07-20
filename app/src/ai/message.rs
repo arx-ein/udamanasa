@@ -30,7 +30,7 @@ impl ChatMessage {
         }
     }
 
-    /// まなみ（アシスタント）の発言。
+    /// まなさ（アシスタント）の発言。
     pub fn assistant(message: &str, timestamp: DateTime<Utc>) -> Self {
         Self {
             role: Role::Assistant,
@@ -84,7 +84,7 @@ mod tests {
         }
         assert_eq!(user_msg.content, "やあ");
 
-        // まなみ（アシスタント）の発言は名前を持たず、content は本文そのもの。
+        // まなさ（アシスタント）の発言は名前を持たず、content は本文そのもの。
         let assistant_msg = ChatMessage::assistant("やっほー", fixed_ts());
         assert!(matches!(assistant_msg.role, Role::Assistant));
         assert_eq!(assistant_msg.content, "やっほー");
@@ -107,7 +107,7 @@ mod tests {
             "unexpected user content: {user_text}"
         );
 
-        // まなみの発言: [時刻] 本文（名前は付けない）
+        // まなさの発言: [時刻] 本文（名前は付けない）
         let assistant_msg = ChatMessage::assistant("やっほー", fixed_ts());
         assert!(matches!(
             assistant_msg.to_rig(),

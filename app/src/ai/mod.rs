@@ -1,4 +1,4 @@
-//! まなみのLLM機能を提供するモジュール。
+//! まなさのLLM機能を提供するモジュール。
 //! LLM AgentのLoop、ツールの呼び出し、会話履歴の管理などを行う。
 
 use std::collections::{HashMap, VecDeque};
@@ -32,7 +32,7 @@ pub struct ManamiAi {
 }
 
 impl ManamiAi {
-    /// まなみのペルソナ付きでチャットボットのクライアントを構築する。
+    /// まなさのペルソナ付きでチャットボットのクライアントを構築する。
     pub fn manami(
         base_url: &str,
         api_key: &str,
@@ -85,7 +85,7 @@ impl ManamiAi {
         self.push(channel_id, ChatMessage::user(user, message, timestamp));
     }
 
-    /// 指定チャンネルの会話バッファにまなみの発言を追加する。時刻は返信生成時刻 (UTC).
+    /// 指定チャンネルの会話バッファにまなさの発言を追加する。時刻は返信生成時刻 (UTC).
     pub fn add_model_log(&self, channel_id: u64, message: &str) {
         self.push(channel_id, ChatMessage::assistant(message, Utc::now()));
     }
@@ -198,7 +198,7 @@ impl ManamiAi {
             target_user_id,
         )
         .await?;
-        // まなみが履歴を模倣して先頭に付けてしまう時刻・名前の接頭辞を剥がす。
+        // まなさが履歴を模倣して先頭に付けてしまう時刻・名前の接頭辞を剥がす。
         // ここで正規化してからバッファへ積むことで、次ターンの二重焼き（[時刻][時刻]…）も防ぐ。
         let reply = decorate_output::strip_leading_prefix(&reply);
         self.add_model_log(channel_id, &reply);

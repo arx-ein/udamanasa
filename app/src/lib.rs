@@ -1,4 +1,4 @@
-/// まなみのメインモジュール
+/// まなさのメインモジュール
 /// メッセージ・コマンドのハンドリングを担当
 use std::{
     sync::{Arc, Mutex},
@@ -32,7 +32,7 @@ use db::BotDatabase;
 
 pub mod commands;
 
-/// まなみが自発的に応答する確率の既定値 (%).
+/// まなさが自発的に応答する確率の既定値 (%).
 const DEFAULT_REPLY_RATE: u32 = 30;
 
 /// チャンネル設定から自発反応の (許可, 割合%) を解決する。
@@ -66,12 +66,12 @@ pub struct Bot {
     pub default_channel_id: ChannelId,
     pub debug_channel_id: ChannelId,
 
-    // まなみの情報
-    // まなみのバージョン情報
+    // まなさの情報
+    // まなさのバージョン情報
     pub commit_hash: Option<String>,
     pub commit_date: Option<String>,
 
-    // まなみの雑談用のAI
+    // まなさの雑談用のAI
     pub ai: ai::ManamiAi,
 
     // コマンド用のデータ
@@ -195,10 +195,10 @@ impl EventHandler for Bot {
             "おすし買ってきたよー！",
             "ピザ買ってきたよー！",
             "たーだいまーっ！",
-            "まなみちゃん、参上！",
+            "まなさちゃん、参上！",
             "おはよう、みんな！",
             "だれかいるー？",
-            "まなみは元気ですっ！　あれ……？",
+            "まなさは元気ですっ！　あれ……？",
         ];
 
         let message_hello = *message_hello_list.choose(&mut rng()).unwrap();
@@ -393,7 +393,7 @@ async fn save_guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
     }
 
     // AIのためにメッセージを保存する。会話バッファはチャンネルごとに分かれるので全チャンネルで積む。
-    // ボット（まなみ自身を含む）の発言は積まない。まなみの発言は add_model_log 側で積まれる。
+    // ボット（まなさ自身を含む）の発言は積まない。まなさの発言は add_model_log 側で積まれる。
     if !msg.author.bot {
         bot.ai.add_user_log(
             msg.channel_id.get(),
@@ -472,7 +472,7 @@ async fn say_free_reply(
     response_to_all: bool,
     response_to_all_model: &str,
 ) {
-    // まなみは「いま応答している相手」= このメッセージの author に対してプロフィールを読み書きする。
+    // まなさは「いま応答している相手」= このメッセージの author に対してプロフィールを読み書きする。
     // 会話バッファはチャンネルごとに分かれ、各チャンネルが自分の文脈を持つので、
     // どのチャンネルでも応答相手（author）を対象にプロフィールを読み書きする。
     let target_user_id = msg.author.id.get().to_string();
@@ -513,7 +513,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
 
     // if message does not contains any command, respond with AI
     let command_pattern =
-        Regex::new(r"(?ms)((?:まなみ(?:ちゃん)?(?:\s|、|は|って|の)?)|!)(.*)").unwrap();
+        Regex::new(r"(?ms)((?:まなさ(?:ちゃん)?(?:\s|、|は|って|の)?)|!)(.*)").unwrap();
     let input_string = match command_pattern.captures(&msg.content) {
         // コマンド部分を抽出
         Some(caps) => caps.get(2).unwrap().as_str().to_owned(),
@@ -562,7 +562,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
             }
 
             if is_debug_channel {
-                // まなみが自由に応答するコーナー
+                // まなさが自由に応答するコーナー
                 say_free_reply(bot, ctx, msg, response_to_all, &response_to_all_model).await;
             }
         }

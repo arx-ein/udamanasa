@@ -9,7 +9,7 @@ impl Tool for Watch {
         let now = chrono::Utc::now();
         let formatted_time = now.format("%Y-%m-%d %H:%M:%S").to_string();
         Ok(format!(
-            "まなみの時計によると、現在時刻は {formatted_time} だよ！"
+            "まなさの時計によると、現在時刻は {formatted_time} だよ！"
         ))
     }
 

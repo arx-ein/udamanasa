@@ -204,7 +204,7 @@ fn drop_at_or_before(messages: Vec<MessageInfo>, from: DateTime<Utc>) -> Vec<Mes
         .collect()
 }
 
-/// まなみでも bot コマンドでもない、人間の地の発言だけを見る。
+/// まなさでも bot コマンドでもない、人間の地の発言だけを見る。
 fn is_human_talk(message: &MessageInfo, my_userid: UserId) -> bool {
     message.user_id != my_userid && !message.content.starts_with('!')
 }
@@ -350,12 +350,12 @@ mod tests {
 
     #[test]
     fn skip_reason_rejects_manami_only() {
-        // まなみの独り言しかないセッションは人間の発言 0 件。
+        // まなさの独り言しかないセッションは人間の発言 0 件。
         let messages: Vec<MessageInfo> = (0..8)
             .map(|i| {
                 msg(
                     MANAMI,
-                    "まなみ",
+                    "まなさ",
                     "そうなんだ！　それでね、こういう長い話をしていたことにするね",
                     &format!("2026-07-17T03:{:02}:00Z", 30 + i),
                 )

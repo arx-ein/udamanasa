@@ -42,7 +42,7 @@ pub async fn run_agent(
 
     let mut run = AgentRun::new(prompt).with_history(history).max_turns(10);
 
-    let mut response_blocks: Vec<Block> = Vec::new(); // まなみの reasoning 表示用
+    let mut response_blocks: Vec<Block> = Vec::new(); // まなさの reasoning 表示用
 
     loop {
         match run.next_step()? {

@@ -97,7 +97,7 @@ pub struct User {
     pub room_pointer: Option<ChannelId>,
 }
 
-/// まなみが応答相手について学習した人間プロフィール。
+/// まなさが応答相手について学習した人間プロフィール。
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UserProfile {
     pub user_id: UserId,
