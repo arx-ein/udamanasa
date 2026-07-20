@@ -9,7 +9,7 @@ const COMMAND_NAME: &str = "imakita";
 
 pub const PREFIX_IMAKITA_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
     name: COMMAND_NAME,
-    usage: "!imakita [minutes]",
+    usage: "u!imakita [minutes]",
     alias: &["今北産業"],
     description: "今北産業",
     run: |ctx| {

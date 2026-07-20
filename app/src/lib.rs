@@ -473,7 +473,7 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
 
     // if message does not contains any command, respond with AI
     let command_pattern =
-        Regex::new(r"(?ms)((?:まなさ(?:ちゃん)?(?:\s|、|は|って|の)?)|!)(.*)").unwrap();
+        Regex::new(r"(?ms)((?:まなさ(?:ちゃん)?(?:\s|、|は|って|の)?)|^u!)(.*)").unwrap();
     let input_string = match command_pattern.captures(&msg.content) {
         // コマンド部分を抽出
         Some(caps) => caps.get(2).unwrap().as_str().to_owned(),
@@ -510,8 +510,8 @@ async fn guild_message(bot: &Bot, ctx: &Context, msg: &Message) {
     match guild_command {
         Some(cmd) => (cmd.run)(command_context).await,
         None => {
-            // "!" 始まりで未知のコマンドなら dice にフォールバック
-            if msg.content.starts_with('!') {
+            // "u!" 始まりで未知のコマンドなら dice にフォールバック
+            if msg.content.starts_with("u!") {
                 if let Some(cmd) = bot
                     .prefix_commands
                     .iter()

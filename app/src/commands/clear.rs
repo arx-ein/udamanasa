@@ -11,7 +11,7 @@ pub const PREFIX_CLEAR_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
         "全部わすれて",
         "ぜんぶわすれて",
     ],
-    usage: "!clear",
+    usage: "u!clear",
     description: "チャンネルの会話ログを忘れるよ！",
     run: |ctx| Box::pin(run_old(ctx)),
     is_dm_command: false,
