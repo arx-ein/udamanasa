@@ -169,7 +169,7 @@ impl ManamiAi {
             .unwrap_or_default();
 
         if messages.is_empty() {
-            return Ok("やっほー！　どうしたの？".to_owned());
+            return Ok("やっほー、どうしたのかな？".to_owned());
         }
 
         // 応答相手のプロフィールを決定的に引き、システムプロンプト末尾へ注入する。
@@ -208,7 +208,7 @@ impl ManamiAi {
     /// チャットログを渡して要約させる。
     pub async fn generate_matome(&self, messages: Vec<ChatMessage>) -> Result<String> {
         if messages.is_empty() {
-            return Ok("まとめるログがないよ".to_owned());
+            return Ok("まとめるログが見当たらないね".to_owned());
         }
         let model = self.default_model.clone();
         let effort = "low";

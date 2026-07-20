@@ -7,7 +7,7 @@ use crate::commands::{CommandContext, ManamiSlashCommand};
 pub const SLASH_VARBULK_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "varbulk",
     usage: "/varbulk <definitions>",
-    description: ";区切りで複数の変数を一度に定義するよ！",
+    description: ";区切りで複数の変数を一度に定義するよ",
     register,
     run: |options, ctx| {
         let input = parse_options(options);
@@ -18,7 +18,7 @@ pub const SLASH_VARBULK_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("varbulk")
-        .description(";区切りで複数の変数を一度に定義するよ！")
+        .description(";区切りで複数の変数を一度に定義するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 CommandOptionType::String,

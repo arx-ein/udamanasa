@@ -6,7 +6,7 @@ use crate::commands::{CommandContext, ManamiSlashCommand};
 pub const SLASH_DELETEVAR_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "deletevar",
     usage: "/deletevar <names>",
-    description: "定義した変数を消去するよ！",
+    description: "定義した変数を消去するよ",
     register,
     run: |options, ctx| {
         let names = parse_options(options);
@@ -17,7 +17,7 @@ pub const SLASH_DELETEVAR_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("deletevar")
-        .description("定義した変数を消去するよ！")
+        .description("定義した変数を消去するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 CommandOptionType::String,

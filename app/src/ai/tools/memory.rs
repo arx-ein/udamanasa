@@ -237,7 +237,7 @@ async fn amend(
     db.update_memory(memory_id, title, content)
         .await
         .map_err(|e| format!("記憶の更新に失敗しちゃった。Error: {e}"))?;
-    Ok(format!("「{title}」の記憶を更新したよ！"))
+    Ok(format!("「{title}」の記憶を更新したよ"))
 }
 
 #[cfg(test)]

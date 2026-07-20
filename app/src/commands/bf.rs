@@ -10,7 +10,7 @@ use crate::commands::ManamiSlashCommand;
 pub const SLASH_BF_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "bf",
     usage: "/bf <code> [input]",
-    description: "まなさは、いんたぷりた？なんだよ",
+    description: "まなさは、いんたぷりた…？なんだよ",
     register,
     run: |options, _| {
         let result = run(options);
@@ -97,7 +97,7 @@ fn run_body(parsed: Result<(Vec<BrainfuckCommand>, &str), &str>) -> String {
             } else if output.split("\n").count() > 16 {
                 let output = output.split("\n").take(16).collect::<Vec<_>>();
                 format!(
-                    "```\n{}\n...のこり{}行は省略しちゃうね！\n```",
+                    "```\n{}\n...のこり{}行は省略しちゃうね\n```",
                     output.join("\n"),
                     output.len() - 16
                 )

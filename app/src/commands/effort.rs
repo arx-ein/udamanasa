@@ -9,7 +9,7 @@ use serenity::model::application::ResolvedOption;
 pub const SLASH_EFFORT_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "effort",
     usage: "/effort <effort>",
-    description: "reasoning effortを変えるよ！",
+    description: "reasoning effortを変えるよ",
     register,
     run: |option, ctx| {
         let opts = parse(option);

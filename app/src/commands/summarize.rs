@@ -44,6 +44,6 @@ async fn run_body(ctx: &CommandContext<'_>) -> String {
             format!("記憶しなかったよ（{reason}）。ここまでは要約済みにしておくね。")
         }
         Ok(Outcome::Nothing) => "もう全部知ってるよ！".to_owned(),
-        Err(e) => format!("あれー、要約に失敗しちゃった…… Error: {e}"),
+        Err(e) => format!("うーん… 要約に失敗しちゃった…… Error: {e}"),
     }
 }

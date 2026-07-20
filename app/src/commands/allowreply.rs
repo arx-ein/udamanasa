@@ -6,7 +6,7 @@ use tracing::error;
 
 use crate::commands::{CommandContext, ManamiSlashCommand};
 
-const DESC: &str = "まなさがこのチャンネルで自分から話に参加する確率を設定するよ！";
+const DESC: &str = "まなさがこのチャンネルで自分から話に参加する確率を設定するよ";
 
 pub const SLASH_ALLOWREPLY_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "allowreply",
@@ -56,7 +56,7 @@ async fn run_body(rate: Option<u32>, ctx: CommandContext<'_>) -> String {
             .set_channel_reply_setting(&channel_id, Some(true), Some(rate))
             .await
         {
-            Ok(()) => format!("うん！　これからは{rate}%くらいの確率でおはなしするね！"),
+            Ok(()) => format!("了解、これからは{rate}%くらいの確率でおはなしするね"),
             Err(e) => {
                 error!("Error setting channel reply setting: {e:?}");
                 FAILED_TO_SET.to_owned()
@@ -82,9 +82,9 @@ async fn run_body(rate: Option<u32>, ctx: CommandContext<'_>) -> String {
         .await
     {
         Ok(()) if new_enabled => {
-            format!("うん！　これからは{rate}%くらいの確率でおはなしするね！")
+            format!("了解、これからは{rate}%くらいの確率でおはなしするね")
         }
-        Ok(()) => "まなさには内緒のおはなしなの？　わかったよ、もー……".to_owned(),
+        Ok(()) => "ふふっ、まなさには内緒のおはなしかな？".to_owned(),
         Err(e) => {
             error!("Error setting channel reply setting: {e:?}");
             FAILED_TO_SET.to_owned()

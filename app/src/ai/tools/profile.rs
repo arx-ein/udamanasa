@@ -19,7 +19,7 @@ impl Tool for RememberProfile {
     /// 対象ユーザーは LLM の引数ではなく、dispatch が注入した `ctx.target_user_id` を使う。
     async fn call(ctx: ToolCallContext<'_>) -> Result<String, String> {
         if ctx.target_user_id.is_empty() {
-            return Err("誰のプロフィールを覚えればいいのか分からないよ。".to_owned());
+            return Err("誰のプロフィールを覚えればいいのかな".to_owned());
         }
         let update = parse_update(&ctx.args)?;
         write(ctx.db, ctx.target_user_id, update).await
@@ -82,7 +82,7 @@ async fn write(db: &BotDatabase, user_id: &str, update: ProfileUpdate) -> Result
     )
     .await
     .map_err(|e| format!("プロフィールの保存に失敗しちゃった。Error: {e}"))?;
-    Ok("相手のプロフィールを覚えたよ！".to_owned())
+    Ok("相手のプロフィールを覚えたよ".to_owned())
 }
 
 #[cfg(test)]

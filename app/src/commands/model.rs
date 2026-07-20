@@ -11,7 +11,7 @@ use serenity::model::application::ResolvedOption;
 pub const SLASH_MODEL_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "model",
     usage: "/model <model>",
-    description: "使うモデルを変えるよ！",
+    description: "使うモデルを変えるよ",
     register,
     run: |option, ctx| {
         let opts = parse(option);

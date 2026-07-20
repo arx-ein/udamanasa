@@ -161,24 +161,24 @@ impl EventHandler for Bot {
         };
 
         let message_hello_list = [
-            "おはようっ！",
-            "おはよーっ！！",
-            "おーはよっ！",
-            "おはよーっ、みんな！",
-            "やっほー！",
-            "やっほーっ！",
-            "ふわぁ、今日もがんばるよー！",
-            "ふわ〜あ、今日もがんばろー！",
-            "おはよっ、今日もがんばろうねー！",
-            "あれっ？　寝ちゃってた？",
-            "むにゃ、寝ちゃってたぁ……",
-            "おすし買ってきたよー！",
-            "ピザ買ってきたよー！",
-            "たーだいまーっ！",
-            "まなさちゃん、参上！",
-            "おはよう、みんな！",
-            "だれかいるー？",
-            "まなさは元気ですっ！　あれ……？",
+            "おはよう～",
+            "ごきげんよう、まなさだよ",
+            "みんなおはよう、元気かな？",
+            "みんなおはよ、元気してるかい",
+            "やっほ～",
+            "やぁ、しばらくぶりだね",
+            "ふわぁ、今日もがんばろっか",
+            "ふわぁ～、今日もがんばろう",
+            "おはよう、今日もがんばろうね",
+            "あれ、寝ちゃってたかな",
+            "んんっ、寝ちゃってたみたい",
+            "おすし買ってきたよ",
+            "ピザを買ってきたよ",
+            "ただいま～",
+            "まなさがやってきたよ",
+            "おはよう、みんな",
+            "だれかいるかな？",
+            "まなさは元気にやってるよ",
         ];
 
         let message_hello = *message_hello_list.choose(&mut rng()).unwrap();
@@ -280,12 +280,12 @@ impl EventHandler for Bot {
                 .find(|cmd| cmd.name == command.data.name)
             {
                 Some(cmd) => (cmd.run)(command.data.options(), command_context).await,
-                None => "知らないコマンドだよ！".to_owned(),
+                None => "そのコマンドは知らないかも".to_owned(),
             };
 
             // Discord は空（または空白のみ）の content を拒否するので、そのときは代替文言を送る。
             let content = if content.trim().is_empty() {
-                "（返す言葉が見つからなかったよ）".to_owned()
+                "（返す言葉が見当たらなかった）".to_owned()
             } else {
                 content
             };
@@ -329,7 +329,7 @@ async fn direct_message(bot: &Bot, ctx: &Context, msg: &Message) {
         None => {
             let _ = &msg
                 .channel_id
-                .say(&ctx.http, "しらないコマンドだよ")
+                .say(&ctx.http, "そのコマンドは知らないかも")
                 .await
                 .unwrap();
         }

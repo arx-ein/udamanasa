@@ -58,6 +58,6 @@ pub async fn dispatch(
         "amend" => memory::Amend::call(ctx).await,
         "read_memory" => memory::Read::call(ctx).await,
         "remember_profile" => profile::RememberProfile::call(ctx).await,
-        _ => Err(format!("{name}は知らないツールだよ！")),
+        _ => Err(format!("{name}というツールは知らないなあ")),
     }
 }

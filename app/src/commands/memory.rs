@@ -8,7 +8,7 @@ const USAGE: &str = "/memory [list <page>|get <id>|search <query>]";
 pub const SLASH_MEMORY_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "memory",
     usage: USAGE,
-    description: "まなさの記憶を覗けるよ！",
+    description: "まなさの記憶を覗けるよ",
     register,
     run: |options, ctx| Box::pin(async move { run(options, ctx).await }),
     is_local_command: true,
@@ -16,7 +16,7 @@ pub const SLASH_MEMORY_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("memory")
-        .description("まなさの記憶を覗けるよ！")
+        .description("まなさの記憶を覗けるよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 CommandOptionType::SubCommand,
@@ -73,7 +73,7 @@ pub async fn run(options: Vec<ResolvedOption<'_>>, ctx: CommandContext<'_>) -> S
         "list" => list(sub_options, &ctx).await,
         "get" => get(sub_options, &ctx).await,
         "search" => search(sub_options, &ctx).await,
-        other => format!("「{other}」は知らないサブコマンドだよ。"),
+        other => format!("「{other}」というサブコマンドは知らないかも"),
     }
 }
 

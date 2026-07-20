@@ -6,7 +6,7 @@ use crate::commands::{CommandContext, ManamiSlashCommand};
 pub const SLASH_CALC_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "calc",
     usage: "/calc <expr>",
-    description: "数式を計算するよ！",
+    description: "数式を計算するよ",
     register,
     run: |options, ctx| {
         let expr = parse_options(options);
@@ -17,7 +17,7 @@ pub const SLASH_CALC_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("calc")
-        .description("数式を計算するよ！")
+        .description("数式を計算するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(CommandOptionType::String, "expr", "数式")
                 .required(true),

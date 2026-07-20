@@ -10,7 +10,7 @@ pub const VAR_DEFAULT: &str = "_";
 pub const SLASH_VAR_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
     name: "var",
     usage: "/var <name> <expr>",
-    description: "calcで使える変数を定義するよ！",
+    description: "calcで使える変数を定義するよ",
     register,
     run: |options, ctx| {
         let (name, expr) = parse_options(options);
@@ -21,7 +21,7 @@ pub const SLASH_VAR_COMMAND: ManamiSlashCommand = ManamiSlashCommand {
 
 pub fn register() -> serenity::builder::CreateCommand {
     serenity::builder::CreateCommand::new("var")
-        .description("calcで使える変数を定義するよ！")
+        .description("calcで使える変数を定義するよ")
         .add_option(
             serenity::builder::CreateCommandOption::new(
                 CommandOptionType::String,
@@ -89,14 +89,14 @@ pub async fn eval_and_bind(var: &str, expression: &str, bot: &Bot, author_id: Us
 pub async fn delete_var(var: &str, bot: &Bot) -> String {
     bot.database.delete_var(var).await.ok();
     bot.variables.remove(&var.to_owned());
-    format!("変数 `{var}` を削除したよ！")
+    format!("変数 `{var}` を削除したよ")
 }
 
 pub async fn list_var(bot: &Bot) -> String {
     match bot.database.list_var().await {
         Ok(vars) => {
             if vars.is_empty() {
-                return "変数はないよ！".to_owned();
+                return "変数は無いね".to_owned();
             }
             let mut result = String::new();
             let spaces = vars.iter().map(|(k, _)| k.len()).max().unwrap_or(0);
@@ -109,6 +109,6 @@ pub async fn list_var(bot: &Bot) -> String {
             result.push_str("```");
             result
         }
-        Err(e) => format!("変数の取得に失敗したよ！: {e}"),
+        Err(e) => format!("変数の取得に失敗しちゃった: {e}"),
     }
 }
