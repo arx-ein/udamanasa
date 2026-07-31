@@ -16,7 +16,7 @@ pub const PREFIX_CCLEMON_COMMAND: ManamiPrefixCommand = ManamiPrefixCommand {
 pub async fn run(ctx: CommandContext<'_>) {
     let [opponent_id] = ctx.args()[..] else {
         ctx.channel_id
-            .say(ctx.cache_http(), "使い方: `!cclemon <相手>`")
+            .say(ctx.cache_http(), "使い方: `u!cclemon <相手>`")
             .await
             .unwrap();
         return;
