@@ -207,7 +207,7 @@ impl ManamiAi {
         let messages = self.snapshot(channel_id);
         if messages.is_empty() {
             let _typing = on_reply_decided();
-            return Ok(Some("やっほー、どうしたのかな？").to_owned());
+            return Ok(Some("やっほー、どうしたのかな？".to_owned()));
         }
 
         let profile_block = self.profile_block(db, target_user_id).await;

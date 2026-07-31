@@ -1,7 +1,5 @@
 /// まなさのメインモジュール
 /// メッセージ・コマンドのハンドリングを担当
-use std::sync::{Arc, Mutex};
-
 use rand::rng;
 use rand::{prelude::IndexedRandom, Rng};
 
