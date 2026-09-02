@@ -78,6 +78,15 @@ impl WorkersApi {
         if let Some(to) = query.to {
             params.push(("to", to));
         }
+        if let Some(after) = query.after {
+            params.push(("after", after));
+        }
+        if let Some(after_message_id) = query.after_message_id {
+            params.push(("after_message_id", after_message_id));
+        }
+        if let Some(summary_pending_only) = query.summary_pending_only {
+            params.push(("summary_pending_only", summary_pending_only.to_string()));
+        }
         self.get_with_query("/message", &params).await
     }
 

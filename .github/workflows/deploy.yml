@@ -75,6 +75,7 @@ jobs:
           workingDirectory: workers
 
   deploy:
+    needs: deploy-workers
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

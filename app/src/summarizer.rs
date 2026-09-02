@@ -20,9 +20,6 @@ const IDLE_GAP: TimeDelta = TimeDelta::hours(6);
 const SESSION_MESSAGE_LIMIT: u32 = 100;
 const MAX_MESSAGES_PER_RUN: usize = 200;
 
-/// `last_summarized_at` が未設定のときに遡る上限。古いログを見過ぎないため
-const MAX_LOOKBACK: TimeDelta = TimeDelta::hours(24);
-
 /// 1 tick が LLM を叩く上限。
 const MAX_CHANNELS_PER_TICK: usize = 3;
 /// 要約する価値があるとみなす人間の発言数の下限。
@@ -93,17 +90,15 @@ async fn tick_once(bot: &Bot, my_userid: UserId, backoff: &DashSet<ChannelId>) {
         }
 
         match summarize_channel(bot, my_userid, &candidate, now).await {
-            Ok(outcome) => {
-                match outcome {
-                    Outcome::Summarized { title } => {
-                        info!("summarizer: remembered {title}");
-                    }
-                    Outcome::Skipped(reason) => {
-                        info!("summarizer: skipped #{} ({reason})", candidate.name);
-                    }
-                    Outcome::Nothing => {}
+            Ok(outcome) => match outcome {
+                Outcome::Summarized { title } => {
+                    info!("summarizer: remembered {title}");
                 }
-            }
+                Outcome::Skipped(reason) => {
+                    info!("summarizer: skipped #{} ({reason})", candidate.name);
+                }
+                Outcome::Nothing => {}
+            },
             Err(e) => {
                 // 進捗は前進していないので、次の機会に同じ範囲がリトライされる。
                 backoff.insert(channel_id);
@@ -119,30 +114,44 @@ pub async fn summarize_channel(
     bot: &Bot,
     my_userid: UserId,
     candidate: &udamanami_shared::SummarizeCandidate,
-    now: DateTime<Utc>,
+    _now: DateTime<Utc>,
 ) -> anyhow::Result<Outcome> {
     let channel_id = ChannelId::from(candidate.channel_id.parse::<u64>()?);
-    let from = resolve_from(candidate.last_summarized_at.as_deref(), now);
+    let from = candidate
+        .last_summarized_at
+        .as_deref()
+        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+        .map(|t| t.with_timezone(&Utc));
 
     let messages = bot
         .database
-        .fetch_log_by_range(&channel_id, Some(from), None, MAX_MESSAGES_PER_RUN)
+        .fetch_log_by_range(
+            &channel_id,
+            from,
+            candidate.last_summarized_message_id.clone(),
+            None,
+            MAX_MESSAGES_PER_RUN,
+        )
         .await?;
-    // workers 側の from は閉区間(timestamp >= from)なので、境界の1件を落とす。
-    // これをやらないと、前セッションの最終発言が毎回先頭に混ざる。
-    let messages = drop_at_or_before(messages, from);
 
     let Some(last) = messages.last() else {
         return Ok(Outcome::Nothing);
     };
-    // 進めるのは「実際に取れた最後の発言」まで。candidate.last_message_at にすると、
+    // 進めるのは「実際に取れた最後の発言」まで。候補の最新未要約時刻まで進めると、
     // MAX_MESSAGES_PER_RUN で切られた分を要約せずに飛ばしてしまう。
     let session_end = last.timestamp;
+    let session_end_message_id = last.message_id;
     let session_start = messages[0].timestamp;
+    let message_ids = messages.iter().map(|message| message.message_id).collect();
 
     if let Some(reason) = skip_reason(&messages, my_userid) {
         bot.database
-            .set_channel_summarized(&channel_id, session_end)
+            .set_channel_summarized(
+                &channel_id,
+                session_end,
+                session_end_message_id,
+                message_ids,
+            )
             .await?;
         return Ok(Outcome::Skipped(reason));
     }
@@ -155,7 +164,12 @@ pub async fn summarize_channel(
 
     let Some(summary) = bot.ai.generate_memory_summary(&channel_name, chat).await? else {
         bot.database
-            .set_channel_summarized(&channel_id, session_end)
+            .set_channel_summarized(
+                &channel_id,
+                session_end,
+                session_end_message_id,
+                message_ids,
+            )
             .await?;
         return Ok(Outcome::Skipped("モデルが記憶に値しないと判断した"));
     };
@@ -166,7 +180,12 @@ pub async fn summarize_channel(
         .create_summary_memory(&title, summary.trim(), &channel_name, session_start)
         .await?;
     bot.database
-        .set_channel_summarized(&channel_id, session_end)
+        .set_channel_summarized(
+            &channel_id,
+            session_end,
+            session_end_message_id,
+            message_ids,
+        )
         .await?;
 
     Ok(Outcome::Summarized { title })
@@ -174,8 +193,8 @@ pub async fn summarize_channel(
 
 /// 通常 tick が待つ無音/件数の区切りを飛ばし、指定チャンネルを即座に候補化する(!summarize 用)。
 ///
-/// idle_before を未来にして workers 側 HAVING の `MAX(timestamp) <= idle_before` を必ず真にし、
-/// min_pending=1 で件数下限を落とす。未要約が 0 件なら None(= 無変動なら要約しない不変条件は保つ)。
+/// idle_before を未来にして workers 側の無音条件を必ず真にし、min_pending=1 で件数下限を落とす。
+/// 未要約が 0 件なら None(= 無変動なら要約しない不変条件は保つ)。
 pub async fn on_demand_candidate(
     bot: &Bot,
     channel_id: ChannelId,
@@ -187,21 +206,6 @@ pub async fn on_demand_candidate(
         .await?;
     let channel_id = channel_id.get().to_string();
     Ok(candidates.into_iter().find(|c| c.channel_id == channel_id))
-}
-
-/// 未要約範囲の開始時刻を決める。未設定なら直近 MAX_LOOKBACK まで遡る。
-fn resolve_from(last_summarized_at: Option<&str>, now: DateTime<Utc>) -> DateTime<Utc> {
-    last_summarized_at
-        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-        .map_or(now - MAX_LOOKBACK, |t| t.with_timezone(&Utc))
-}
-
-/// `from` 以前のメッセージを落とす。workers 側の from が閉区間であることへの対処。
-fn drop_at_or_before(messages: Vec<MessageInfo>, from: DateTime<Utc>) -> Vec<MessageInfo> {
-    messages
-        .into_iter()
-        .filter(|m| m.timestamp > from)
-        .collect()
 }
 
 /// まなみでも bot コマンドでもない、人間の地の発言だけを見る。
@@ -288,40 +292,19 @@ mod tests {
     }
 
     #[test]
-    fn resolve_from_falls_back_to_lookback_when_unset() {
-        let now = ts("2026-07-17T12:00:00Z");
-        // 未設定なら直近 MAX_LOOKBACK まで遡る。過去ログ全部を要約しにいかない。
-        assert_eq!(resolve_from(None, now), now - MAX_LOOKBACK);
-        // 設定済みならその時刻から。
-        assert_eq!(
-            resolve_from(Some("2026-07-17T09:00:00Z"), now),
-            ts("2026-07-17T09:00:00Z")
-        );
-        // 壊れた値は未設定と同じ扱いにして、会話を止めない。
-        assert_eq!(resolve_from(Some("not a date"), now), now - MAX_LOOKBACK);
-    }
-
-    #[test]
-    fn drop_at_or_before_excludes_the_boundary_message() {
-        // workers 側の from は閉区間なので、from ちょうどの1件が返ってくる。
-        // これを落とさないと前セッションの最終発言が毎回先頭に混ざる。
-        let from = ts("2026-07-17T03:00:00Z");
-        let messages = vec![
-            msg(1, "宇田", "前セッションの最後", "2026-07-17T03:00:00Z"),
-            msg(1, "宇田", "今セッションの最初", "2026-07-17T03:00:01Z"),
-        ];
-        let kept = drop_at_or_before(messages, from);
-        assert_eq!(kept.len(), 1);
-        assert_eq!(kept[0].content, "今セッションの最初");
-    }
-
-    #[test]
     fn skip_reason_rejects_too_few_messages() {
         // MIN_HUMAN_MESSAGES 未満なら、文字数が足りていても件数で弾く。
         // 各発言を十分長くして、弾かれる理由が「短すぎる」ではなく「少なすぎる」だと確かめる。
         let long = "あ".repeat(MIN_HUMAN_CHARS + 1);
         let messages: Vec<MessageInfo> = (0..MIN_HUMAN_MESSAGES.saturating_sub(1))
-            .map(|i| msg(1, "宇田", &long, &format!("2026-07-17T03:{:02}:00Z", 30 + i)))
+            .map(|i| {
+                msg(
+                    1,
+                    "宇田",
+                    &long,
+                    &format!("2026-07-17T03:{:02}:00Z", 30 + i),
+                )
+            })
             .collect();
         assert_eq!(
             skip_reason(&messages, manami()),
@@ -413,9 +396,12 @@ mod tests {
             channel_id: "123".to_owned(),
             name: name.to_owned(),
             last_summarized_at: None,
-            first_pending_at: "2026-07-17T03:30:00Z".to_owned(),
-            last_message_at: "2026-07-17T05:02:00Z".to_owned(),
-            pending_count: 8,
+            first_pending_at: "2026-07-17T03:00:00Z".to_owned(),
+            last_message_at: "2026-07-17T03:00:00Z".to_owned(),
+            pending_count: 1,
+            last_summarized_message_id: None,
+            first_pending_message_id: Some("1".to_owned()),
+            last_pending_message_id: Some("1".to_owned()),
         }
     }
 

@@ -205,11 +205,27 @@ impl BotDatabase {
         &self,
         channel_id: &ChannelId,
         from: Option<DateTime<Utc>>,
+        after_message_id: Option<String>,
         to: Option<DateTime<Utc>>,
         limit: usize,
     ) -> anyhow::Result<Vec<MessageInfo>> {
-        self.get_messages(channel_id, limit, MessageOrder::Asc, from, to)
-            .await
+        let after = from.map(|t| t.to_rfc3339());
+        let messages = self
+            .api
+            .get_messages(GetMessages {
+                channel_id: channel_id.get().to_string(),
+                limit,
+                order: Some(MessageOrder::Asc),
+                // Keep from for old Workers; new Workers additionally apply the
+                // exclusive composite cursor.
+                from: after.clone(),
+                to: to.map(|t| t.to_rfc3339()),
+                after,
+                after_message_id,
+                summary_pending_only: Some(true),
+            })
+            .await?;
+        Ok(messages.into_iter().map(message_from_dto).collect())
     }
 
     /// 自動要約の進捗を前進させる。要約と memory 登録の両方が成功したときだけ呼ぶこと。
@@ -217,11 +233,18 @@ impl BotDatabase {
         &self,
         channel_id: &ChannelId,
         at: DateTime<Utc>,
+        message_id: MessageId,
+        message_ids: Vec<MessageId>,
     ) -> anyhow::Result<()> {
         self.api
             .set_channel_summarized(&dto::SetChannelSummarized {
                 channel_id: channel_id.get().to_string(),
                 last_summarized_at: at.to_rfc3339(),
+                last_summarized_message_id: Some(message_id.get().to_string()),
+                message_ids: message_ids
+                    .into_iter()
+                    .map(|id| id.get().to_string())
+                    .collect(),
             })
             .await
     }
@@ -268,6 +291,9 @@ impl BotDatabase {
                 order: Some(order),
                 from: from.map(|t| t.to_rfc3339()),
                 to: to.map(|t| t.to_rfc3339()),
+                after: None,
+                after_message_id: None,
+                summary_pending_only: None,
             })
             .await?;
 
@@ -443,6 +469,7 @@ impl MessageInfo {
 mod tests {
     use super::*;
     use crate::ai::Role;
+    use serde::Deserialize;
 
     fn info(user_id: u64, name: &str) -> MessageInfo {
         MessageInfo {
@@ -471,5 +498,64 @@ mod tests {
             info(999, "まなみ").to_chat_message(&me).role,
             Role::Assistant
         ));
+    }
+
+    #[test]
+    fn summary_wire_formats_remain_backward_compatible() {
+        let candidate: dto::SummarizeCandidate = serde_json::from_str(
+            r#"{"channel_id":"c","name":"n","last_summarized_at":null,"first_pending_at":"a","last_message_at":"b","pending_count":2}"#,
+        )
+        .unwrap();
+        assert_eq!(candidate.last_summarized_message_id, None);
+
+        let progress: dto::SetChannelSummarized =
+            serde_json::from_str(r#"{"channel_id":"c","last_summarized_at":"a"}"#).unwrap();
+        assert_eq!(progress.last_summarized_message_id, None);
+        assert!(progress.message_ids.is_empty());
+
+        #[derive(Deserialize)]
+        struct OldProgress {
+            channel_id: String,
+            last_summarized_at: String,
+        }
+        #[derive(Deserialize)]
+        struct OldCandidate {
+            first_pending_at: String,
+            last_message_at: String,
+            pending_count: i64,
+        }
+        let new_candidate = dto::SummarizeCandidate {
+            channel_id: "c".into(),
+            name: "n".into(),
+            last_summarized_at: None,
+            first_pending_at: "a".into(),
+            last_message_at: "b".into(),
+            pending_count: 1,
+            last_summarized_message_id: Some("m0".into()),
+            first_pending_message_id: Some("m1".into()),
+            last_pending_message_id: Some("m1".into()),
+        };
+        let old_candidate: OldCandidate =
+            serde_json::from_value(serde_json::to_value(new_candidate).unwrap()).unwrap();
+        assert_eq!(
+            (
+                old_candidate.first_pending_at.as_str(),
+                old_candidate.last_message_at.as_str(),
+                old_candidate.pending_count,
+            ),
+            ("a", "b", 1),
+        );
+        let new_progress = dto::SetChannelSummarized {
+            channel_id: "c".into(),
+            last_summarized_at: "a".into(),
+            last_summarized_message_id: Some("m".into()),
+            message_ids: vec!["m".into()],
+        };
+        let old: OldProgress =
+            serde_json::from_value(serde_json::to_value(new_progress).unwrap()).unwrap();
+        assert_eq!(
+            (old.channel_id.as_str(), old.last_summarized_at.as_str()),
+            ("c", "a")
+        );
     }
 }

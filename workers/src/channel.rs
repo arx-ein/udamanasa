@@ -113,17 +113,14 @@ pub async fn summarize_candidates(req: Request, ctx: RouteContext<()>) -> Result
     // min_pending は f64 でバインドする。D1 は BigInt を受け付けない。
     let res = d1
         .prepare(
-            "SELECT c.channel_id, c.name, c.last_summarized_at,
-                    MIN(m.timestamp) AS first_pending_at,
-                    MAX(m.timestamp) AS last_message_at,
-                    COUNT(*)         AS pending_count
-             FROM channel c
-             JOIN message m
-               ON m.channel_id = c.channel_id
-              AND (c.last_summarized_at IS NULL OR m.timestamp > c.last_summarized_at)
-             GROUP BY c.channel_id
-             HAVING MAX(m.timestamp) <= ?1 OR COUNT(*) >= ?2
-             ORDER BY MIN(m.timestamp) ASC",
+            "SELECT channel_id, name, last_summarized_at,
+                    first_pending_at, last_pending_at AS last_message_at, pending_count,
+                    last_summarized_message_id, first_pending_message_id,
+                    last_pending_message_id
+             FROM channel
+             WHERE pending_count > 0
+               AND (last_pending_at <= ?1 OR pending_count >= ?2)
+             ORDER BY first_pending_at, first_pending_message_id",
         )
         .bind(&[idle_before.into(), f64::from(min_pending).into()])?
         .run()
@@ -139,23 +136,67 @@ pub async fn set_summarized(mut req: Request, ctx: RouteContext<()>) -> Result<R
         return Response::error("Failed to parse request body", 400);
     };
 
+    // A legacy app cannot identify the rows it actually fetched. Advancing its
+    // timestamp would lose ties and rows inserted during summarization, so the
+    // rolling-deployment-safe behavior is an acknowledged no-op.
+    let Some(last_message_id) = progress.last_summarized_message_id else {
+        return Response::ok("Legacy summary progress ignored safely");
+    };
+    if progress.message_ids.is_empty() {
+        return Response::ok("Legacy summary progress ignored safely");
+    }
+    if progress.message_ids.len() > 200 {
+        return Response::error("Too many summarized message IDs", 400);
+    }
+
     let d1 = ctx.env.d1("DB")?;
 
-    // MAX() で last_summarized_at を単調増加させ、進捗の巻き戻りを防ぐ。COALESCE は NULL の既存行対策。
-    let _ = d1
+    let placeholders = vec!["?"; progress.message_ids.len()].join(", ");
+    let mut confirmed_bindings = Vec::with_capacity(progress.message_ids.len() + 1);
+    confirmed_bindings.push(progress.channel_id.clone().into());
+    confirmed_bindings.extend(progress.message_ids.into_iter().map(Into::into));
+    let confirm = d1
+        .prepare(format!(
+            "UPDATE message SET summary_pending = 0
+             WHERE channel_id = ? AND summary_pending = 1
+               AND message_id IN ({placeholders})"
+        ))
+        .bind(&confirmed_bindings)?;
+
+    // D1 batch is transactional: exact-row confirmation and the compatibility
+    // cursor either both commit or both roll back.
+    let cursor = d1
         .prepare(
-            "INSERT INTO channel (channel_id, is_thread, name, last_summarized_at)
-            VALUES (?, 0, '', ?)
+            "INSERT INTO channel (
+                channel_id, is_thread, name,
+                last_summarized_at, last_summarized_message_id
+            ) VALUES (?, 0, '', ?, ?)
             ON CONFLICT(channel_id) DO UPDATE SET
-                last_summarized_at =
-                    MAX(COALESCE(last_summarized_at, ''), excluded.last_summarized_at)",
+                last_summarized_message_id = CASE
+                    WHEN channel.last_summarized_at IS NULL
+                      OR excluded.last_summarized_at > channel.last_summarized_at
+                    THEN excluded.last_summarized_message_id
+                    WHEN excluded.last_summarized_at < channel.last_summarized_at
+                    THEN channel.last_summarized_message_id
+                    WHEN channel.last_summarized_message_id IS NULL
+                      OR excluded.last_summarized_message_id IS NULL
+                    THEN NULL
+                    ELSE MAX(
+                        channel.last_summarized_message_id,
+                        excluded.last_summarized_message_id
+                    )
+                END,
+                last_summarized_at = MAX(
+                    COALESCE(channel.last_summarized_at, ''),
+                    excluded.last_summarized_at
+                )",
         )
         .bind(&[
             progress.channel_id.into(),
             progress.last_summarized_at.into(),
-        ])?
-        .run()
-        .await?;
+            last_message_id.into(),
+        ])?;
+    let _ = d1.batch(vec![confirm, cursor]).await?;
 
     Response::ok("Channel summary progress updated successfully")
 }
