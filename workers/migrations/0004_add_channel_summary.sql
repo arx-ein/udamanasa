@@ -2,7 +2,7 @@
 
 -- チャンネルの会話セッションを自動要約して memory 化するための状態列。
 -- last_summarized_at より新しい message が「未要約」で、要約と memory 登録の両方が成功したときだけ前進させる。
--- NULL は「未設定」で、実行時に既定値(直近 MAX_LOOKBACK)へ解決する。
+-- NULL は「未設定」で、最初の未要約メッセージから処理する。
 -- 既存の upsert_channel は列を明示して is_thread/name だけ更新するため、このカラムは自動 upsert に上書きされない。
 
 ALTER TABLE "channel" ADD COLUMN "last_summarized_at" TEXT; -- RFC3339, NULL=未設定
@@ -19,7 +19,7 @@ WHERE EXISTS (
     SELECT 1 FROM "message" WHERE "message"."channel_id" = "channel"."channel_id"
 );
 
--- 候補抽出はチャンネルごとの MIN/MAX(timestamp) と COUNT の走査になるため索引を張る。
+-- 未要約状態のバックフィル・進捗更新・削除時の再計算で使う。
 CREATE INDEX IF NOT EXISTS "idx_message_channel_id_timestamp"
     ON "message" ("channel_id", "timestamp");
 

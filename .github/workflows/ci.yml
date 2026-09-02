@@ -15,6 +15,10 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Test
+        run: cargo test --workspace --all-features
+      - name: Test D1 summary state
+        run: ./workers/tests/summary_state.sh
       - name: Check
         if: github.event_name == 'push'
         run: |
