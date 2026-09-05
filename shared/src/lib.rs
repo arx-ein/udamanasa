@@ -40,6 +40,13 @@ pub struct GetMessages {
     pub order: Option<MessageOrder>,
     pub from: Option<String>, // chrono::DateTime<chrono::Utc>
     pub to: Option<String>,
+    /// Exclusive composite cursor. Old Workers ignore these query parameters.
+    #[serde(default)]
+    pub after: Option<String>,
+    #[serde(default)]
+    pub after_message_id: Option<MessageId>,
+    #[serde(default)]
+    pub summary_pending_only: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -75,10 +82,16 @@ pub struct SummarizeCandidate {
     pub name: String,
     /// どこまで要約済みか。`None` は実行時デフォルトにフォールバック
     pub last_summarized_at: Option<String>,
+    // Kept for old-app/new-Worker wire compatibility.
     pub first_pending_at: String,
-    /// 未要約のうち最も新しいメッセージの時刻
     pub last_message_at: String,
     pub pending_count: i64,
+    #[serde(default)]
+    pub last_summarized_message_id: Option<MessageId>,
+    #[serde(default)]
+    pub first_pending_message_id: Option<MessageId>,
+    #[serde(default)]
+    pub last_pending_message_id: Option<MessageId>,
 }
 
 /// 自動要約の進捗。巻き戻りを防ぐため単調増加
@@ -86,6 +99,12 @@ pub struct SummarizeCandidate {
 pub struct SetChannelSummarized {
     pub channel_id: ChannelId,
     pub last_summarized_at: String,
+    #[serde(default)]
+    pub last_summarized_message_id: Option<MessageId>,
+    /// IDs actually returned by GET /message. Empty means a legacy app and is
+    /// intentionally a no-op in the new Worker.
+    #[serde(default)]
+    pub message_ids: Vec<MessageId>,
 }
 
 // ---------------- ユーザー ----------------

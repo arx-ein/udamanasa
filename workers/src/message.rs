@@ -73,7 +73,8 @@ pub async fn delete_message(mut req: Request, ctx: RouteContext<()>) -> Result<R
 
 /// 条件(件数上限・並び順・期間)を指定してチャンネルのメッセージを取得する
 ///
-/// クエリパラメータ: channel_id (必須), limit (必須), order (Asc/Desc), from, to
+/// クエリパラメータ: channel_id (必須), limit (必須), order (Asc/Desc), from, to,
+/// after, after_message_id。after の組は排他的な複合カーソル。
 pub async fn get_messages(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let url = req.url()?;
 
@@ -87,6 +88,8 @@ pub async fn get_messages(req: Request, ctx: RouteContext<()>) -> Result<Respons
         Some("Desc") => "DESC",
         _ => "ASC",
     };
+    let summary_pending_only =
+        crate::query_param(&url, "summary_pending_only").as_deref() == Some("true");
 
     let d1 = ctx.env.d1("DB")?;
 
@@ -96,14 +99,24 @@ pub async fn get_messages(req: Request, ctx: RouteContext<()>) -> Result<Respons
             "SELECT message.*, user.username FROM message
              LEFT JOIN user ON message.user_id = user.user_id
              WHERE channel_id = ?1
-             AND (?2 IS NULL OR timestamp >= ?2)
-             AND (?3 IS NULL OR timestamp <= ?3)
-             ORDER BY timestamp {order} LIMIT ?4"
+             AND (?6 = 1 OR ?2 IS NULL OR timestamp >= ?2)
+             AND (?6 = 1 OR ?3 IS NULL OR timestamp <= ?3)
+             AND (
+                 ?6 = 1
+                 OR ?4 IS NULL
+                 OR timestamp > ?4
+                 OR (timestamp = ?4 AND ?5 IS NOT NULL AND message_id > ?5)
+             )
+             AND (?6 = 0 OR summary_pending = 1)
+             ORDER BY timestamp {order}, message_id {order} LIMIT ?7"
         ))
         .bind(&[
             channel_id.into(),
             crate::opt_to_js(crate::query_param(&url, "from")),
             crate::opt_to_js(crate::query_param(&url, "to")),
+            crate::opt_to_js(crate::query_param(&url, "after")),
+            crate::opt_to_js(crate::query_param(&url, "after_message_id")),
+            summary_pending_only.into(),
             limit.into(),
         ])?
         .run()
